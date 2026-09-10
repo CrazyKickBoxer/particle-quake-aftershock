@@ -1,0 +1,4 @@
+Executable SHA-256: 031CAEF112082A5BDB83BBF131F9E83C97936FA8DA088616B55029FEFBA257AA
+Neon Cathedral / Fine / 3 layers / 1280x720 / RTX 2050 / Ryzen 5 7535HS.
+Timings include capture readback; they are GPU frame averages, not presented frame rates.
+2026-09-08T14:10:33.7228086-07:00

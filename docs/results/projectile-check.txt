@@ -1,0 +1,2 @@
+PASS rocket-0: actual rockets, full panel removal, WALK traversal, threaded rendering
+PASS rocket-1: actual rockets, full panel removal, WALK traversal, threaded rendering

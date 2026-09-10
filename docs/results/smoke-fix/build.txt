@@ -1,0 +1,5 @@
+Executable SHA256: 6F95C979B6C6ED3C990951958C5D3FC49169501B63C3D25D79E0BB9968AE97B5
+PASS: floor-level smoke/spark captures in OIT 0, 1, and 2 at maximum effect amount.
+PASS: real rockets remove panel and traverse breach, classic and particle renderers.
+PASS: four CTests; shader layouts preserved.
+Inspected the near-impact capture: large overlapping discs are replaced by fine sparks and sparse puffs.

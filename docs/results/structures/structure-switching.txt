@@ -1,0 +1,3 @@
+PASS OIT 0: all 11 live structure choices, all four layer counts, maximum effects, reduced flashes, breach preserved
+PASS OIT 1: all 11 live structure choices, all four layer counts, maximum effects, reduced flashes, breach preserved
+PASS OIT 2: all 11 live structure choices, all four layer counts, maximum effects, reduced flashes, breach preserved

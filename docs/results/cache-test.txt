@@ -1,0 +1,1 @@
+PASS cold generation, corrupt checksum rejection, atomic regeneration, subsequent validated cache hit

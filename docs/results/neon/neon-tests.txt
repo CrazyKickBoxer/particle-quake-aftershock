@@ -1,0 +1,4 @@
+PASS cathedral : neon 11 / 3 layers / OIT 1 / scale 1, GPU 4.591 ms
+PASS entrance : neon 11 / 3 layers / OIT 0 / scale 1, GPU 6.59 ms
+PASS breach : neon 11 / 3 layers / OIT 2 / scale 1, GPU 20.645 ms
+PASS scaled : neon 11 / 3 layers / OIT 1 / scale 2, GPU 20.831 ms

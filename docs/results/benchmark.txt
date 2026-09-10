@@ -1,0 +1,5 @@
+1080-rocket-0 host FPS=56.671 p95=19.416ms GPU mean=6.891ms detached=36 errors=0
+1080-rocket-1 host FPS=54.594 p95=25.911ms GPU mean=16.399ms detached=36 errors=0
+geometry-start host FPS=60.051 p95=17.161ms GPU mean=11.819ms detached=16 errors=0
+geometry-e1m2 host FPS=53.833 p95=20.943ms GPU mean=17.938ms detached=9 errors=0
+geometry-e1m3 host FPS=60.048 p95=16.928ms GPU mean=5.297ms detached=38 errors=0

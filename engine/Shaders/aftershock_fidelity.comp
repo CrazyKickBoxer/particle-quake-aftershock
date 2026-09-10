@@ -1,0 +1,191 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* Copyright (C) 2026 Josh Nicholls */
+#version 460
+// HDR temporal reconstruction, geometry-aware contact shading, screen-space
+// reflections, and four-scale bloom. History never contains the HUD or bloom.
+layout(local_size_x=8,local_size_y=8) in;
+layout(set=0,binding=0) uniform sampler2D scene;
+#ifdef DEPTH_MS
+layout(set=0,binding=1) uniform sampler2DMS depth_tex;
+#else
+layout(set=0,binding=1) uniform sampler2D depth_tex;
+#endif
+layout(set=0,binding=2) uniform sampler2D history;
+layout(set=0,binding=3,rgba16f) uniform writeonly image2D history_out;
+layout(set=0,binding=4) uniform sampler2D resolved;
+layout(set=0,binding=5,rgba16f) uniform writeonly image2D output_image;
+layout(set=1,binding=0,std140) uniform Frame {
+    mat4 inverse_vp, previous_vp, vp;
+    vec4 previous_camera, camera, viewport, previous_viewport, screen, blend, settings, nail_ripple, optics;
+} u;
+layout(push_constant) uniform Phase {uint pass_index;uint history_valid;} pc;
+
+ivec2 bounded(ivec2 p){return clamp(p,ivec2(0),ivec2(u.screen.xy)-1);}
+ivec2 scaled(ivec2 p){int scale=int(u.screen.z);return bounded((p/scale)*scale);}
+float depthAt(ivec2 p){
+    p=scaled(p);
+#ifdef DEPTH_MS
+    float d=0.;for(int i=0;i<textureSamples(depth_tex);++i)d=max(d,texelFetch(depth_tex,p,i).r);return d;
+#else
+    return texelFetch(depth_tex,p,0).r;
+#endif
+}
+vec3 worldAt(vec2 p,float depth){
+    vec2 ndc=(p-u.viewport.xy)/max(u.viewport.zw,vec2(1))*2.-1.;
+    vec4 world=u.inverse_vp*vec4(ndc,depth,1.);
+    return world.xyz/max(world.w,1e-7);
+}
+vec3 sourceAt(ivec2 p){return max(texelFetch(scene,scaled(p),0).rgb,vec3(0));}
+bool inView(vec2 p){return all(greaterThanEqual(p,u.viewport.xy+vec2(2)))&&all(lessThan(p,u.viewport.xy+u.viewport.zw-vec2(2)));}
+float luminance(vec3 c){return dot(c,vec3(.2126,.7152,.0722));}
+vec3 resolvedAt(vec2 p){return textureLod(resolved,(p+.5)/u.screen.xy,0).rgb;}
+vec3 surfaceNormal(ivec2 p,vec3 world){
+    int k=int(u.screen.z)*2;
+    vec3 l=worldAt(vec2(p+ivec2(-k,0))+.5,depthAt(p+ivec2(-k,0)));
+    vec3 r=worldAt(vec2(p+ivec2(k,0))+.5,depthAt(p+ivec2(k,0)));
+    vec3 t=worldAt(vec2(p+ivec2(0,-k))+.5,depthAt(p+ivec2(0,-k)));
+    vec3 b=worldAt(vec2(p+ivec2(0,k))+.5,depthAt(p+ivec2(0,k)));
+    // Select the derivative on the same surface at discontinuities.
+    vec3 dx=length(r-world)<length(world-l)?r-world:world-l;
+    vec3 dy=length(b-world)<length(world-t)?b-world:world-t;
+    vec3 n=normalize(cross(dx,dy)+vec3(1e-10));
+    return dot(n,u.camera.xyz-world)<0.?-n:n;
+}
+vec3 reflectScene(vec3 origin,vec3 normal,vec3 view,vec2 pixel){
+    vec3 ray=reflect(-view,normal);
+    float roughness=mix(.48,u.optics.y,smoothstep(.65,.92,normal.z));
+    vec3 start=origin+normal*mix(.7,2.0,u.optics.w);
+    float lastDistance=1.5;
+    // Quadratic steps span nearby gibs through distant columns. Binary refine
+    // only on a depth crossing; reject thickness mismatches and off-screen rays.
+    for(int i=1;i<=32;++i){
+        float distance=1.5+float(i*i)*.65;
+        vec3 at=start+ray*distance;
+        vec4 clip=u.vp*vec4(at,1);
+        if(clip.w<1.)break;
+        vec2 p=(clip.xy/clip.w*.5+.5)*u.viewport.zw+u.viewport.xy;
+        if(!inView(p))break;
+        float d=depthAt(ivec2(p));
+        if(d>0. && clip.z/clip.w<d){
+            float lo=lastDistance,hi=distance;
+            for(int refine=0;refine<5;++refine){
+                float mid=(lo+hi)*.5;vec4 q=u.vp*vec4(start+ray*mid,1);
+                vec2 uv=(q.xy/q.w*.5+.5)*u.viewport.zw+u.viewport.xy;
+                if(q.z/q.w<depthAt(ivec2(uv)))hi=mid;else lo=mid;
+            }
+            at=start+ray*hi;clip=u.vp*vec4(at,1);
+            p=(clip.xy/clip.w*.5+.5)*u.viewport.zw+u.viewport.xy;
+            vec3 hit=worldAt(p+.5,depthAt(ivec2(p)));
+            float thickness=length(hit-at);
+            if(thickness<3.+hi*.015 && length(p-pixel)>3.){
+                vec2 edge=min((p-u.viewport.xy)/u.viewport.zw,1.-(p-u.viewport.xy)/u.viewport.zw);
+                float fade=smoothstep(0.,.08,min(edge.x,edge.y))*(1.-smoothstep(420.,680.,hi));
+                float blur=roughness*(1.+hi*.012);
+                vec3 c=resolvedAt(p)*.4;
+                c+=(resolvedAt(p+vec2(blur,0))+resolvedAt(p-vec2(blur,0))+resolvedAt(p+vec2(0,blur))+resolvedAt(p-vec2(0,blur)))*.15;
+                float fresnel=mix(.12,.24,u.optics.w)+.50*pow(1.-max(dot(normal,view),0.),5.);
+                return c*fade*fresnel*(1.-roughness)*1.6*u.optics.x;
+            }
+            // This ray crossed an unrelated foreground silhouette.
+            if(u.optics.w<.5)break;
+        }
+        lastDistance=distance;
+    }
+    return vec3(0);
+}
+
+void main(){
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);
+    if(any(greaterThanEqual(p,ivec2(u.screen.xy))))return;
+    ivec2 outputPixel=p;
+    if(pc.pass_index==1u && u.settings.z>.5){
+        vec2 uv=(vec2(p)+.5)/u.screen.xy;
+        vec2 wave=sin(uv.yx*vec2(15.70796,15.70796*u.screen.x/u.screen.y)+u.settings.w)/300.;
+        p=bounded(ivec2((uv+wave)*u.screen.xy));
+    }
+    float d=depthAt(p);
+    vec3 world=worldAt(vec2(p)+.5,d);
+    float linearDepth=d>0.?min(length(world-u.camera.xyz),60000.):0.;
+    if(pc.pass_index==0u){
+        vec3 current=sourceAt(p),low=current,high=current,mean=vec3(0);
+        for(int y=-1;y<=1;++y)for(int x=-1;x<=1;++x){
+            vec3 c=sourceAt(p+ivec2(x,y)*int(u.screen.z));low=min(low,c);high=max(high,c);mean+=c/9.;
+        }
+        if(pc.history_valid!=0u && u.settings.x>.5 && d>0. && inView(vec2(p))){
+            vec4 previous=u.previous_vp*vec4(world,1);
+            vec2 prevPixel=(previous.xy/previous.w*.5+.5)*u.previous_viewport.zw+u.previous_viewport.xy;
+            vec2 uv=(prevPixel+.5)/u.screen.xy;
+            if(previous.w>0. && all(greaterThan(uv,vec2(0))) && all(lessThan(uv,vec2(1)))){
+                vec4 old=textureLod(history,uv,0);
+                float expected=length(world-u.previous_camera.xyz);
+                float depthAgreement=1.-smoothstep(.25,1.5+expected*.002,abs(old.a-expected));
+                float motion=length(prevPixel-(vec2(p)+.5));
+                float reactive=clamp(abs(luminance(old.rgb)-luminance(current))/(.12+luminance(high)),0.,1.);
+                vec3 clamped=clamp(old.rgb,low,high);
+                float weight=.78*depthAgreement*(1.-reactive*.88)*exp(-motion*.025);
+                current=mix(current,clamped,weight);
+            }
+        }
+        imageStore(history_out,p,vec4(current,linearDepth));return;
+    }
+    vec2 pixel=vec2(p);
+    vec2 displaced=pixel;
+    if(u.nail_ripple.w>=0. && inView(pixel)) {
+        vec4 clip=u.vp*vec4(u.nail_ripple.xyz,1.);
+        if(clip.w>8.) {
+            vec2 center=(clip.xy/clip.w*.5+.5)*u.viewport.zw+u.viewport.xy;
+            vec2 delta=pixel-center;
+            float radius=(3.+u.nail_ripple.w*145.)*abs(u.vp[1][1])*u.viewport.w/(2.*clip.w);
+            float distance=length(delta),width=max(2.,radius*.07);
+            // Restrict refraction to background pixels; do not warp foreground weapons.
+            float visible=linearDepth>length(u.nail_ripple.xyz-u.camera.xyz)-6.?1.:0.;
+            float offset=exp(-pow((distance-radius)/width,2.))*sin((distance-radius)/width*3.)*(1.-u.nail_ripple.w/.35)*1.8*visible;
+            displaced+=delta/max(distance,1.)*offset;
+        }
+    }
+    vec3 color=resolvedAt(displaced);
+    if(d>0. && linearDepth>12. && inView(pixel)){
+        vec3 n=surfaceNormal(p,world),v=normalize(u.camera.xyz-world);
+        float occlusion=0.;vec3 spill=vec3(0);
+        const vec2 directions[8]=vec2[](vec2(1,0),vec2(-1,0),vec2(0,1),vec2(0,-1),vec2(.707,.707),vec2(-.707,.707),vec2(.707,-.707),vec2(-.707,-.707));
+        for(int i=0;i<8;++i){
+            vec2 samplePixel=pixel+directions[i]*clamp(700./linearDepth,3.,14.);
+            float sd=depthAt(ivec2(samplePixel));
+            if(sd<=0.)continue;
+            vec3 delta=worldAt(samplePixel+.5,sd)-world;float len=length(delta);
+            float locality=(1.-smoothstep(8.,40.,len));
+            float facing=max(dot(n,delta/max(len,.01))-.12,0.);
+            occlusion+=facing*locality;
+            spill+=max(resolvedAt(samplePixel)-vec3(.4),vec3(0))*locality*facing;
+        }
+        color*=1.-min(occlusion*.055,.28);
+        color+=spill*.028;
+        if(u.screen.w>.5 && u.optics.x>0. && n.z>.45) {
+            // The base BSP floor is flat; don't turn individual point sprites
+            // into tiny mirrors with unrelated billboard-derived normals.
+            vec3 mirrorNormal=normalize(mix(n,vec3(0,0,1),u.optics.w*smoothstep(.65,.9,n.z)));
+            color+=reflectScene(world,mirrorNormal,v,pixel);
+        }
+    }
+    // Four differently sized Gaussian-like kernels preserve crisp cores while
+    // spreading HDR energy into both tight halos and a broad, soft glow.
+    vec3 bloom=vec3(0);
+    for(int ring=0;ring<4;++ring){
+        float radius=ring==0?2.:ring==1?6.:ring==2?16.:36.;
+        float weight=ring==0?.032:ring==1?.024:ring==2?.014:.008;
+        for(int i=0;i<12;++i){
+            float angle=float(i)*6.2831853/12.;
+            vec3 c=resolvedAt(pixel+vec2(cos(angle),sin(angle))*radius);
+            float brightness=max(c.r,max(c.g,c.b));
+            float knee=smoothstep(.35,1.3,brightness);
+            bloom+=c*knee*weight;
+        }
+    }
+    color+=bloom*1.45*u.optics.z;
+    // Luminance-preserving HDR shoulder retains saturated cyan/gold/magenta.
+    float peak=max(color.r,max(color.g,color.b));
+    color*= (1.-exp(-peak*1.25))/max(peak,1e-5);
+    color=mix(color,u.blend.rgb,u.blend.a);
+    if(u.settings.y>.5)color=mix(color,vec3(luminance(color)),.5)*.6;
+    imageStore(output_image,outputPixel,vec4(color,1));
+}

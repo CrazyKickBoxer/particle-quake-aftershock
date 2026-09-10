@@ -1,0 +1,14 @@
+{
+  "comparison": "same map/tick/Fine/3 layers; reflection toggle only",
+  "changed_pixels_over_3": 79138,
+  "mean_rgb_delta": 0.6424486400462963,
+  "floor_region_mean_delta": 1.7280208333333333,
+  "upper_region_mean_delta": 0.001546875,
+  "opaque_status_bar_region": [
+    350,
+    688,
+    930,
+    718
+  ],
+  "opaque_status_bar_mean_delta": 0.32189655172413795
+}

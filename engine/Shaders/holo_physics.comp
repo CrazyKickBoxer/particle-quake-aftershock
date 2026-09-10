@@ -1,0 +1,450 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* Copyright (C) 2026 Josh Nicholls */
+#version 450
+#extension GL_GOOGLE_include_directive : enable
+#include "holo_palette.glsl"
+// Holo Physics: bounded GPU passes selected by HP_PASS.
+// The persistent home buffer is read-only; only bounded sparse state is writable.
+layout(local_size_x=64) in;
+struct Particle { vec3 position; uint pointId; vec3 velocity; float freeTimer;
+    uint flags; uint seed; float freeLifetime; uint sourceRef; };
+struct Impulse { vec3 origin; float radius; vec3 direction; float strength;
+    vec3 normal; float duration; uint type; uint colorSlot; uint seed; float birthTime; };
+layout(std430,set=0,binding=0) buffer State { Particle particles[]; };
+#if HP_PASS == 5
+layout(std430,set=0,binding=1) buffer Homes { vec4 homes[]; };
+#else
+layout(std430,set=0,binding=1) readonly buffer Homes { vec4 homes[]; };
+#endif
+layout(std430,set=0,binding=2) buffer Lists { uint words[]; };
+layout(std430,set=0,binding=3) buffer Occupancy { uint bits[]; };
+layout(std430,set=0,binding=4) readonly buffer Events { Impulse impulses[]; };
+layout(std430,set=0,binding=5) readonly buffer Samples { uint samples[]; };
+struct Surface { vec4 origin; vec4 s; vec4 t; uvec4 range; vec4 mins; vec4 maxs; };
+layout(std430,set=0,binding=6) readonly buffer Surfaces { Surface surfaces[]; };
+layout(std430,set=0,binding=7) buffer Lookup { uvec2 lookup[]; };
+struct Cell { uint key;uint point;int nx;int ny;int nz;uint count;uint normal;uint distance; };
+layout(std430,set=0,binding=8) buffer Collision { Cell cells[]; };
+layout(std430,set=0,binding=9) buffer Gore { Particle stains[]; };
+struct DeathJob { mat4 model; uvec4 mesh; vec4 parameters; uvec4 info; };
+layout(std430,set=0,binding=10) readonly buffer DeathJobs { DeathJob deathJobs[]; };
+struct Light { vec3 origin;float radius;vec3 color;float minlight;vec3 cone;float coneCos; };
+layout(std430,set=0,binding=11) buffer Lights { Light lights[]; };
+#if HP_PASS == 11
+layout(std430,set=1,binding=0) readonly buffer Mesh { uint mesh[]; };
+vec3 meshPosition(uint base,uint vertex) {
+    uint a=mesh[base+vertex*3u],b=mesh[base+vertex*3u+1u];return vec3(a&65535u,a>>16,b&65535u)/257.;
+}
+#endif
+layout(push_constant) uniform Settings {
+    uint budget; uint sourceCount; uint eventCount; uint inputList;
+    float dt; float time; float settle; float turbulence;
+    float suction; float gravity; float epsilonPosition; float epsilonSpeed;
+    float sprayCount; float pointStep; float pad0; float pad1;
+    vec4 gridOriginCell;
+    uint gridCapacity; uint collide; float restitution; float turbulenceScale;
+    uint goreCap; uint goreEnabled; float goreLife; float goreGravity;
+    float dust; float beamCrawl; float deathEnabled; float shake;
+} pc;
+const uint FREE=1u, STUCK=2u, GORE=4u, DEBRIS=8u, DUST=16u, SPARK=32u;
+const uint INVALID=0xffffffffu;
+uint inputBase() { return 128u+pc.inputList*pc.budget; }
+uint outputBase() { return 128u+(1u-pc.inputList)*pc.budget; }
+uint freeBase() { return 128u+2u*pc.budget; }
+uint hashId(uint x) { x^=x>>16; x*=0x7feb352du; x^=x>>15; x*=0x846ca68bu; return x^(x>>16); }
+uint cellKey(vec3 p) {
+    ivec3 c=ivec3(floor((p-pc.gridOriginCell.xyz)/pc.gridOriginCell.w));
+    if(any(lessThan(c,ivec3(0))) || any(greaterThanEqual(c,ivec3(1024)))) return 0xffffffffu;
+    return uint(c.x)|(uint(c.y)<<10u)|(uint(c.z)<<20u);
+}
+uint cellFind(uint key) {
+    if(key==0xffffffffu) return 0xffffffffu;
+    for(uint i=0u;i<32u;++i) { uint h=(hashId(key)+i)%pc.gridCapacity;
+        uint found=cells[h].key; if(found==key) return h; if(found==0xffffffffu) break; }
+    return 0xffffffffu;
+}
+bool collideSurface(vec3 previous,inout vec3 position,inout vec3 velocity) {
+    if(pc.collide==0u) return false;
+    vec3 travel=position-previous;
+    int steps=clamp(int(ceil(length(travel)/(pc.gridOriginCell.w*.4))),1,8);
+    for(int i=1;i<=steps;++i) {
+        vec3 samplePosition=previous+travel*(float(i)/float(steps));
+        uint cell=cellFind(cellKey(samplePosition)); if(cell==0xffffffffu) continue;
+        uint point=cells[cell].point; if(point>=pc.sourceCount) continue;
+        vec3 normal=normalize(unpackSnorm4x8(cells[cell].normal).xyz);
+        uint key=cells[cell].key;
+        vec3 center=(vec3(key&1023u,(key>>10u)&1023u,(key>>20u)&1023u)+.5)*pc.gridOriginCell.w+pc.gridOriginCell.xyz;
+        float planeDistance=unpackHalf2x16(cells[cell].distance).x;
+        float before=dot(previous-center,normal)+planeDistance,after=dot(samplePosition-center,normal)+planeDistance;
+        if(dot(travel,normal)<0.0 && before>=-.5 && after<.2) {
+            position=samplePosition+normal*(.2-after); velocity=reflect(velocity,normal)*pc.restitution;return true;
+        }
+    }
+    return false;
+}
+vec3 safeNormal(vec3 v) { float d=dot(v,v); return d>1e-12?v*inversesqrt(d):vec3(0,0,1); }
+vec3 curlWind(vec3 position) {
+    vec3 q=position/max(8.,pc.turbulenceScale)+pc.time*vec3(.25,.3,.2);
+    return vec3(cos(q.y)-sin(q.z),cos(q.z)-sin(q.x),cos(q.x)-sin(q.y));
+}
+uint popFree() {
+    uint n=atomicAdd(words[2],0u);
+    for(uint retry=0u;retry<64u && n!=0u;++retry) { uint prior=atomicCompSwap(words[2],n,n-1u);
+        if(prior==n) return words[freeBase()+n-1u]; n=prior; }
+    return INVALID;
+}
+void retire(Particle p,uint slot) {
+    if(p.pointId!=INVALID) {
+        atomicAnd(bits[p.pointId>>5],~(1u<<(p.pointId&31u)));
+        lookup[p.sourceRef]=uvec2(0xfffffffeu,INVALID);
+    }
+    particles[slot].flags=0u;
+    uint n=atomicAdd(words[2],1u); words[freeBase()+n]=slot;
+}
+void appendActive(uint slot) {
+    uint n=atomicAdd(words[1u-pc.inputList],1u);
+    words[outputBase()+n]=slot;
+}
+void spring(inout vec3 x,inout vec3 v,float omega,float dt) {
+    vec3 c=v+omega*x; float decay=exp(-omega*dt);
+    x=(x+c*dt)*decay; v=(v-omega*c*dt)*decay;
+}
+#if HP_PASS == 3
+shared uvec2 eventMask;
+void promote(uint id) {
+    if(id>=pc.sourceCount || pc.dt<=0.0 || floatBitsToUint(homes[id].w)==0u) return;
+    vec3 anchor=homes[id].xyz;
+    vec3 velocity=vec3(0); float lifetime=0; uint seed=0u,flags=FREE;
+    for(uint j=0u;j<pc.eventCount;++j) {
+        if((eventMask[j>>5u]&(1u<<(j&31u)))==0u) continue;
+        Impulse e=impulses[j]; vec3 delta=anchor-e.origin;
+        if(e.type==2u || e.type==7u) continue; // independent gore never steals a wall's home
+        vec3 axis=e.direction-e.origin;
+        if(e.type==3u || e.type==6u) {
+            float t=clamp(dot(delta,axis)/max(.001,dot(axis,axis)),0.,1.);
+            delta=anchor-(e.origin+axis*t);
+        }
+        if(e.type==4u) { if(abs(delta.z)>12.) continue;delta.z=0.; }
+        float d=length(delta),age=pc.time-e.birthTime;
+        if(d>=e.radius || age<0.0) continue;
+        vec3 eye=vec3(uintBitsToFloat(words[24]),uintBitsToFloat(words[25]),uintBitsToFloat(words[26]));
+        float lod=clamp(384./max(384.,distance(anchor,eye)),.1,1.);
+        if(float(hashId(id^e.seed)&65535u)/65535.>lod*lod) continue;
+        if(e.type==0u) {
+            // Cross the travelling front once, even if a frame spans its band.
+            float front=e.radius*age/.12, previous=e.radius*max(0.0,age-pc.dt)/.12;
+            if(age>.12+pc.dt || d>front || (age>pc.dt && d<=previous)) continue;
+        } else if(age>.0001) continue;
+        float f=1.0-d/e.radius;
+        vec3 direction=safeNormal(delta);
+        if(e.type==1u) {
+            float probability=min(1.0,pc.sprayCount*pc.pointStep*pc.pointStep/(3.141593*e.radius*e.radius));
+            uint seed0=hashId(id^e.seed);
+            if(float(seed0&65535u)/65535.0>probability) continue;
+            vec3 normal=safeNormal(unpackSnorm4x8(floatBitsToUint(homes[id].w)).xyz);
+            vec3 reflected=dot(e.direction,e.direction)>1e-6?safeNormal(reflect(safeNormal(e.direction),normal)):normal;
+            vec3 u=safeNormal(cross(reflected,abs(reflected.z)<.9?vec3(0,0,1):vec3(1,0,0)));
+            vec3 v=cross(reflected,u);
+            float angle=float(hashId(seed0)&65535u)/65535.0*6.283185;
+            float radial=sqrt(float(hashId(seed0+1u)&65535u)/65535.0)*.7002;
+            direction=safeNormal(reflected+radial*(u*cos(angle)+v*sin(angle)));
+        }
+        if(e.type==5u) direction=-direction;
+        if(e.type==3u) direction=safeNormal(direction+safeNormal(axis)*pc.beamCrawl);
+        if(e.type==4u) direction=safeNormal(direction+vec3(0,0,1.6));
+        if(e.type==0u && pc.dust>0.0 && anchor.z>e.origin.z+24. &&
+            unpackSnorm4x8(floatBitsToUint(homes[id].w)).z<-.7 &&
+            float(hashId(id^e.seed)&65535u)/65535.<pc.dust*.025) {
+            direction=vec3(0,0,-1);e.strength=24.;e.duration=max(e.duration,1.6);flags|=DUST;
+        }
+        velocity+=direction*e.strength*f*f;
+        lifetime=max(lifetime,e.duration); seed^=e.seed;
+        flags=(flags&255u)|(e.colorSlot<<8u);if(e.type==1u) flags|=SPARK;
+    }
+    if(lifetime<=0.0 || dot(velocity,velocity)<.0001) return;
+    uint mask=1u<<(id&31u);
+    if((atomicOr(bits[id>>5],mask)&mask)!=0u) return;
+    uint slot=popFree();
+    if(slot==INVALID) { atomicAnd(bits[id>>5],~mask); atomicAdd(words[3],1u); return; }
+    uint entry=INVALID;
+    for(uint probe=0u;probe<32u;++probe) {
+        uint h=(hashId(id)+probe)%(pc.budget*2u);
+        uint key=atomicAdd(lookup[h].x,0u);
+        if(key!=INVALID && key!=0xfffffffeu) continue;
+        if(atomicCompSwap(lookup[h].x,key,id)==key) { entry=h; break; }
+    }
+    if(entry==INVALID) { uint n=atomicAdd(words[2],1u); words[freeBase()+n]=slot;
+        atomicAnd(bits[id>>5],~mask); atomicAdd(words[3],1u); return; }
+    Particle p; p.position=anchor; p.pointId=id; p.velocity=velocity; p.freeTimer=lifetime;
+    p.flags=flags; p.seed=hashId(id^seed); p.freeLifetime=lifetime; p.sourceRef=entry;
+    lookup[entry].y=slot;
+    particles[slot]=p; appendActive(slot); atomicAdd(words[8],1u);
+}
+#endif
+#if HP_PASS == 12
+shared float lightScores[64];
+shared uint lightWinners[64];
+#endif
+void main() {
+    uint id=gl_GlobalInvocationID.x+gl_GlobalInvocationID.y*gl_NumWorkGroups.x*64u;
+#if HP_PASS == 0
+    if(id<65536u) stains[id].flags=0u;
+    if(id<pc.budget) { particles[id].flags=0u; words[freeBase()+id]=id; }
+    if(id<(pc.sourceCount+31u)/32u) bits[id]=0u;
+    if(id<pc.budget*2u) lookup[id]=uvec2(INVALID);
+    if(id==0u) { words[0]=0u; words[1]=0u; words[2]=pc.budget;
+        words[3]=0u; words[4]=0u; words[5]=1u; words[6]=1u; words[7]=0u; words[8]=0u;
+        words[10]=0u;words[16]=6u;words[17]=0u;words[18]=0u;words[19]=0u;
+        words[20]=6u;words[21]=0u;words[22]=0u;words[23]=0u;words[27]=0u;
+        words[12]=floatBitsToUint(pc.time);words[13]=0u;words[14]=pc.goreCap; }
+#elif HP_PASS == 1
+    if(id<96u) words[32u+id]=0u;
+    if(id==0u) { words[1u-pc.inputList]=0u; words[3]=0u; words[7]=0u; words[8]=0u;
+        if(pc.goreEnabled==0u || words[14]!=pc.goreCap) words[13]=0u;
+        words[12]=floatBitsToUint(pc.time);words[14]=pc.goreCap;
+        words[4]=(words[pc.inputList]+63u)/64u; words[5]=1u; words[6]=1u; }
+#elif HP_PASS == 2
+    if(id>=words[pc.inputList]) return;
+    uint slot=words[inputBase()+id]; Particle p=particles[slot];
+    uint bucket=uint(clamp((1.0-p.freeTimer/max(.05,p.freeLifetime))*.8+(.2/(1.0+length(p.velocity))),0.0,.999)*16.0);
+    if(pc.pad0>0.0) { uint n=atomicAdd(words[48u+bucket],0u);
+        for(uint retry=0u;retry<64u && n>0u;++retry) { uint prior=atomicCompSwap(words[48u+bucket],n,n-1u);
+            if(prior==n) { retire(p,slot);atomicAdd(words[7],1u);return; } n=prior; } }
+    if(((p.flags&GORE)!=0u && pc.goreEnabled==0u) || ((p.flags&128u)!=0u && pc.deathEnabled<=0.0)) { retire(p,slot);return; }
+    if(pc.dt<=0.0) { appendActive(slot); return; }
+    if((p.flags&(GORE|DEBRIS))!=0u) {
+        p.freeTimer-=pc.dt;
+        for(int step=0;step<4;++step) {
+            float dt=clamp(pc.dt,0.0,.05)*.25; vec3 previous=p.position;
+            p.velocity+=curlWind(p.position)*pc.turbulence*12.*dt;
+            p.velocity.z-=((p.flags&64u)!=0u?40.:800.)*pc.goreGravity*dt;p.velocity*=exp(-1.8*dt);
+            if((p.flags&64u)!=0u) p.velocity*=exp(-12.0*dt);
+            p.position+=p.velocity*dt;
+            if(collideSurface(previous,p.position,p.velocity)) {
+                if(pc.goreCap>0u && pc.goreEnabled!=0u && (p.flags&(GORE|128u))!=0u && (p.flags&64u)==0u) {
+                    Particle stain=p;stain.velocity=vec3(0);stain.flags=GORE|STUCK;
+                    stain.freeTimer=pc.time;stain.freeLifetime=pc.goreLife;
+                    uint dest=atomicAdd(words[13],1u)%pc.goreCap;stains[dest]=stain;
+                }
+                retire(p,slot);return;
+            }
+        }
+        if(p.freeTimer<=0.0) retire(p,slot);else { particles[slot]=p;appendActive(slot); }
+        return;
+    }
+    vec3 anchor=homes[p.pointId].xyz, displacement=p.position-anchor;
+    float dt=clamp(pc.dt,0.0,.05);
+    // Already-active points receive overlapping blasts as well. Their owner
+    // thread integrates the combined velocity; no floating-point atomics.
+    for(uint j=0u;j<pc.eventCount;++j) {
+        Impulse e=impulses[j]; float age=pc.time-e.birthTime;
+        vec3 delta=anchor-e.origin; float d=length(delta);
+        float front=e.radius*age/.12,previous=e.radius*max(0.0,age-dt)/.12;
+        if(e.type==0u && age>=0.0 && age<=.12+dt && d<e.radius && d<=front && (age<=dt || d>previous)) {
+            float f=1.0-d/e.radius; p.velocity+=safeNormal(delta)*e.strength*f*f;
+            p.freeTimer=max(p.freeTimer,e.duration);p.freeLifetime=max(p.freeLifetime,e.duration);
+        }
+        if(e.type==0u && age>=0.0 && age<.2 && d<e.radius) {
+            vec3 normal=unpackSnorm4x8(floatBitsToUint(homes[p.pointId].w)).xyz;
+            p.velocity+=normal*pc.shake*6.*cos(age*31.41593)*dt*(1.-d/e.radius);
+        }
+        if(e.type==5u && d<e.radius) {
+            if(age>=.12 && age<.2) p.velocity*=exp(-20.*dt);
+            if(age>=.2 && age-dt<.2) p.velocity+=safeNormal(delta)*e.strength*.65*pow(1.-d/e.radius,2.);
+        }
+    }
+    // Four bounded substeps; critically damped response is analytic within each.
+    for(int step=0;step<4;++step) {
+        float h=dt*.25;
+        p.freeTimer=max(0.0,p.freeTimer-h);
+        float returnBlend=clamp(1.0-p.freeTimer/max(.05,p.freeLifetime),0.0,1.0);
+        float freedom=1.0-returnBlend;
+        vec3 curl=curlWind(p.position);
+        p.velocity+=(curl*pc.turbulence*12.0-vec3(0,0,pc.gravity+((p.flags&DUST)!=0u?45.:0.)))*freedom*freedom*h;
+        for(uint j=0u;j<pc.eventCount;++j) {
+            Impulse e=impulses[j]; float age=pc.time-e.birthTime;
+            if(e.type!=0u || age<.12 || age>.4) continue;
+            vec3 outward=p.position-e.origin; float distance=length(outward);
+            float falloff=max(0.0,1.0-distance/e.radius);
+            p.velocity-=safeNormal(outward)*e.strength*pc.suction*falloff*falloff*h/.28;
+        }
+        p.velocity*=exp(-1.5*freedom*h);
+        spring(displacement,p.velocity,sqrt(returnBlend)*10.0/max(.25,p.freeLifetime),h);
+        vec3 previous=p.position;
+        p.position=anchor+displacement;
+        // Returning samples must reach their own exact surface, not hover at
+        // collision clearance. Collision affects the initial free phase only.
+        if(returnBlend<.5) { collideSurface(previous,p.position,p.velocity); displacement=p.position-anchor; }
+    }
+    if(p.freeTimer==0.0 && length(displacement)<pc.epsilonPosition && length(p.velocity)<pc.epsilonSpeed)
+        retire(p,slot);
+    else { particles[slot]=p; appendActive(slot); }
+#elif HP_PASS == 3
+    // One group handles a bounded source range. Reject entire BSP surfaces
+    // before reading homes; no full-cloud event/point cross product.
+    uint candidate=gl_WorkGroupID.x+gl_WorkGroupID.y*gl_NumWorkGroups.x;
+    if(candidate>=words[112]) return;
+    uint group=words[128u+3u*pc.budget+65536u+candidate];
+    uint low=0u,high=uint(pc.pad1);
+    while(low+1u<high) { uint mid=(low+high)/2u;
+        if(surfaces[mid].range.z<=group) low=mid;else high=mid; }
+    Surface face=surfaces[low];
+    if(group>=face.range.z+face.range.w || pc.dt<=0.0) return;
+    if(gl_LocalInvocationID.x==0u) {
+        eventMask=uvec2(0);
+        for(uint j=0u;j<pc.eventCount;++j) {
+            Impulse e=impulses[j];float age=pc.time-e.birthTime;
+            if(e.type==2u || e.type==7u || age<0.0 ||
+               (e.type==0u?age>.12+pc.dt:age>.0001)) continue;
+            vec3 lo=e.origin-vec3(e.radius),hi=e.origin+vec3(e.radius);
+            if(e.type==3u || e.type==6u) {
+                lo=min(e.origin,e.direction)-vec3(e.radius);
+                hi=max(e.origin,e.direction)+vec3(e.radius);
+            }
+            if(all(lessThanEqual(lo,face.maxs.xyz)) && all(greaterThanEqual(hi,face.mins.xyz)))
+                eventMask[j>>5u]|=1u<<(j&31u);
+        }
+    }
+    barrier();
+    if(all(equal(eventMask,uvec2(0)))) return;
+    uint base=face.range.x+(group-face.range.z)*256u;
+    for(uint i=gl_LocalInvocationID.x;i<256u;i+=64u)
+        if(base+i<face.range.x+face.range.y) promote(base+i);
+#elif HP_PASS == 4
+    if(id==0u) { words[4]=(words[1u-pc.inputList]+63u)/64u; words[5]=1u; words[6]=1u;
+        words[10]=1u-pc.inputList;
+        words[16]=6u;words[17]=words[1u-pc.inputList];words[18]=0u;words[19]=0u;
+        words[20]=6u;words[21]=0u;words[22]=0u;words[23]=0u; }
+#elif HP_PASS == 5
+    if(id>=pc.sourceCount) return;
+    uint low=0u, high=pc.eventCount; // eventCount carries surface count in map-build pass
+    while(low+1u<high) { uint mid=(low+high)/2u;
+        if(surfaces[mid].range.x<=id) low=mid; else high=mid; }
+    Surface face=surfaces[low];
+    if(id>=face.range.x+face.range.y) { homes[id]=vec4(0);return; }
+    uint packed=samples[id];
+    vec2 uv=vec2(packed&65535u,packed>>16);
+    homes[id]=vec4(face.origin.xyz+face.s.xyz*uv.x+face.t.xyz*uv.y,
+        uintBitsToFloat(packSnorm4x8(vec4(face.origin.w,face.s.w,face.t.w,.5))));
+#elif HP_PASS == 6
+    if(id<pc.gridCapacity) { cells[id].key=INVALID;cells[id].point=INVALID;cells[id].nx=0;cells[id].ny=0;cells[id].nz=0;
+        cells[id].count=0u;cells[id].normal=0u;cells[id].distance=0u; }
+#elif HP_PASS == 8
+    if(id>=words[pc.inputList]) return;
+    Particle p=particles[words[inputBase()+id]];
+    uint bucket=uint(clamp((1.0-p.freeTimer/max(.05,p.freeLifetime))*.8+(.2/(1.0+length(p.velocity))),0.0,.999)*16.0);
+    atomicAdd(words[32u+bucket],1u);
+#elif HP_PASS == 9
+    if(id!=0u) return;
+    uint need=pc.budget/4u-min(pc.budget/4u,words[2]);
+    for(int bin=15;bin>=0;--bin) { uint count=min(need,words[32u+uint(bin)]);words[48u+uint(bin)]=count;need-=count; }
+#elif HP_PASS == 7
+    if(id>=pc.sourceCount || floatBitsToUint(homes[id].w)==0u) return;
+    uint key=cellKey(homes[id].xyz); if(key==INVALID) return;
+    for(uint i=0u;i<32u;++i) {
+        uint h=(hashId(key)+i)%pc.gridCapacity;
+        uint prior=atomicCompSwap(cells[h].key,INVALID,key);
+        if(prior==INVALID || prior==key) {
+            atomicMin(cells[h].point,id);
+            vec3 normal=unpackSnorm4x8(floatBitsToUint(homes[id].w)).xyz;
+            atomicAdd(cells[h].nx,int(normal.x*1024.));atomicAdd(cells[h].ny,int(normal.y*1024.));atomicAdd(cells[h].nz,int(normal.z*1024.));
+            atomicAdd(cells[h].count,1u);return;
+        }
+    }
+#elif HP_PASS == 10
+    if(pc.dt<=0.0 || gl_WorkGroupID.x>=pc.eventCount) return;
+    Impulse e=impulses[gl_WorkGroupID.x];
+    if((e.type!=2u && e.type!=7u && e.type!=4u && e.type!=5u) || pc.time-e.birthTime>.0001) return;
+    if((e.type==2u || e.type==7u) && pc.goreEnabled==0u) return;
+    uint slot=popFree();if(slot==INVALID) { atomicAdd(words[3],1u);return; }
+    uint seed=hashId(e.seed^gl_LocalInvocationID.x);
+    vec3 random=vec3(float(hashId(seed)&65535u),float(hashId(seed+1u)&65535u),float(hashId(seed+2u)&65535u))/32767.5-1.;
+    Particle p;p.position=e.origin+random*3.;p.pointId=INVALID;
+    p.velocity=safeNormal(random+vec3(0,0,.5))*e.strength+e.direction*e.strength*.5;
+    p.freeTimer=3.;p.flags=FREE|GORE;p.seed=seed;p.freeLifetime=3.;p.sourceRef=INVALID;
+    if(e.type==4u || e.type==5u) {
+        float angle=float(gl_LocalInvocationID.x)/64.*6.283185;
+        vec3 radial=vec3(cos(angle),sin(angle),0);
+        p.position=e.origin+radial*(e.type==4u?12.:e.radius*.5);
+        p.velocity=(radial*(e.type==4u?1.:-1.)+vec3(0,0,e.type==4u?1.5:.2))*e.strength;
+        p.freeTimer=e.duration;p.freeLifetime=e.duration;p.flags=FREE|DEBRIS|(e.colorSlot<<8u);
+    }
+    particles[slot]=p;appendActive(slot);atomicAdd(words[8],1u);
+#elif HP_PASS == 11
+    DeathJob job=deathJobs[uint(pc.pad1)];
+    uint count=min(job.info.x,pc.budget/8u);
+    vec3 eye=vec3(uintBitsToFloat(words[24]),uintBitsToFloat(words[25]),uintBitsToFloat(words[26]));
+    float lod=clamp(384./max(384.,distance(job.model[3].xyz,eye)),.1,1.);
+    count=max(1u,uint(float(count)*lod*lod));
+    if(id>=count+32u || pc.dt<=0.0) return;
+    uint slot=popFree();if(slot==INVALID) { atomicAdd(words[3],1u);return; }
+    uint sampleId=min(job.info.x-1u,id*job.info.x/max(1u,count));
+    uint base=job.mesh.w+sampleId*4u;
+    uvec3 ids=uvec3(mesh[base],mesh[base+1u],mesh[base+2u]);uint packed=mesh[base+3u];
+    vec2 bary=vec2(packed&4095u,(packed>>12u)&4095u)/4095.;
+    vec3 weights=vec3(1.-bary.x-bary.y,bary);
+    vec3 local=vec3(0);
+    for(int j=0;j<3;++j) local+=mix(meshPosition(job.mesh.x,ids[j]),meshPosition(job.mesh.y,ids[j]),job.parameters.x)*weights[j];
+    vec3 world=(job.model*vec4(local,1)).xyz;
+    vec3 center=job.model[3].xyz;
+    uint seed=hashId(id^job.info.y);
+    vec3 random=vec3(float(hashId(seed)&65535u),float(hashId(seed+1u)&65535u),float(hashId(seed+2u)&65535u))/32767.5-1.;
+    bool core=id>=count;
+    if(core) world=center+vec3(0,0,20)+random*4.;
+    Particle p;p.position=world;p.pointId=INVALID;
+    p.velocity=(safeNormal(world-center+random*6.)+vec3(0,0,.6))*job.parameters.y;
+    if(core) p.velocity=-random*4.;
+    p.freeTimer=job.parameters.z+(core?.35:0.);p.flags=FREE|DEBRIS|128u|(core?64u:0u);
+    p.seed=seed;p.freeLifetime=p.freeTimer;p.sourceRef=INVALID;
+    particles[slot]=p;appendActive(slot);atomicAdd(words[8],1u);
+#elif HP_PASS == 12
+    float best=0.;uint winner=INVALID;
+    for(uint i=id;i<words[1u-pc.inputList];i+=64u) {
+        uint slot=words[outputBase()+i];Particle p=particles[slot];
+        if((p.flags&(GORE|DEBRIS))==0u) continue;
+        float score=clamp(p.freeTimer/max(.05,p.freeLifetime),0.,1.);
+        if((p.flags&64u)!=0u) score*=1.5;
+        if(score>best) { best=score;winner=slot; }
+    }
+    lightScores[id]=best;lightWinners[id]=winner;barrier();
+    if(id>=4u) return;
+    for(uint i=id+4u;i<64u;i+=4u) if(lightScores[i]>best) { best=lightScores[i];winner=lightWinners[i]; }
+    Light light;light.origin=vec3(0);light.radius=0.;light.color=vec3(0);light.minlight=0.;light.cone=vec3(0);light.coneCos=-2.;
+    if(winner!=INVALID) { Particle p=particles[winner];light.origin=p.position;
+        light.radius=64.*best;light.color=holoPalette(int(words[15]),(p.flags&GORE)!=0u?3:1,vec3(.5))*best;
+    }
+    lights[id]=light;
+#elif HP_PASS == 14
+    // Draw-only expiry/compaction. STUCK particles are never integrated.
+    if(id==0u) words[28]=floatBitsToUint(pc.goreLife);
+    if(id>=65536u) return;
+    if(pc.goreEnabled==0u || id>=pc.goreCap) { stains[id].flags=0u;return; }
+    Particle p=stains[id];if((p.flags&STUCK)==0u) return;
+    if(pc.time-p.freeTimer>=pc.goreLife) { stains[id].flags=0u;return; }
+    uint draw=atomicAdd(words[21],1u);
+    words[128u+3u*pc.budget+draw]=id;
+#elif HP_PASS == 15
+    if(id>=uint(pc.pad1)) return;
+    Surface face=surfaces[id];bool affected=false;
+    for(uint j=0u;j<pc.eventCount;++j) {
+        Impulse e=impulses[j];float age=pc.time-e.birthTime;
+        if(e.type==2u || e.type==7u || age<0.0 || (e.type==0u?age>.12+pc.dt:age>.0001)) continue;
+        vec3 lo=e.origin-vec3(e.radius),hi=e.origin+vec3(e.radius);
+        if(e.type==3u || e.type==6u) { lo=min(e.origin,e.direction)-vec3(e.radius);hi=max(e.origin,e.direction)+vec3(e.radius); }
+        if(all(lessThanEqual(lo,face.maxs.xyz)) && all(greaterThanEqual(hi,face.mins.xyz))) { affected=true;break; }
+    }
+    if(!affected) return;
+    uint base=atomicAdd(words[112],face.range.w);
+    for(uint i=0u;i<face.range.w;++i) words[128u+3u*pc.budget+65536u+base+i]=face.range.z+i;
+#elif HP_PASS == 16
+    if(id==0u) { words[113]=min(words[112],65535u);words[114]=max(1u,(words[112]+65534u)/65535u);words[115]=1u; }
+#elif HP_PASS == 13
+    if(id>=pc.gridCapacity || cells[id].key==INVALID) return;
+    vec3 normal=vec3(cells[id].nx,cells[id].ny,cells[id].nz);
+    if(dot(normal,normal)<1.) normal=unpackSnorm4x8(floatBitsToUint(homes[cells[id].point].w)).xyz;
+    normal=safeNormal(normal);cells[id].normal=packSnorm4x8(vec4(normal,0));
+    uint key=cells[id].key;
+    vec3 center=(vec3(key&1023u,(key>>10u)&1023u,(key>>20u)&1023u)+.5)*pc.gridOriginCell.w+pc.gridOriginCell.xyz;
+    cells[id].distance=packHalf2x16(vec2(dot(center-homes[cells[id].point].xyz,normal),0));
+#endif
+}

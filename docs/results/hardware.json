@@ -1,0 +1,19 @@
+{
+  "Memory": {
+    "TotalPhysicalMemory": 25028239360
+  },
+  "GPU": "NVIDIA GeForce RTX 2050",
+  "CPU": {
+    "Name": "AMD Ryzen 5 7535HS with Radeon Graphics        ",
+    "NumberOfCores": 6,
+    "NumberOfLogicalProcessors": 12
+  },
+  "Physics": "PhysX 5.6.0 CPU",
+  "Driver": "596.36",
+  "Upstream": "4519111e8ee33e6d7570c0b483f0f45c2fac6d52",
+  "OS": {
+    "Caption": "Microsoft Windows 11 Home",
+    "Version": "10.0.26200",
+    "BuildNumber": "26200"
+  }
+}

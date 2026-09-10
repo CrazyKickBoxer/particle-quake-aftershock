@@ -1,0 +1,12 @@
+PASS structure 0 / original : GPU 5.614 ms, 36 detached
+PASS structure 1 / dust : GPU 7.257 ms, 36 detached
+PASS structure 2 / beads : GPU 16.827 ms, 36 detached
+PASS structure 3 / chips : GPU 7.667 ms, 36 detached
+PASS structure 4 / microvoxels : GPU 8.83 ms, 36 detached
+PASS structure 5 / flakes : GPU 10.149 ms, 36 detached
+PASS structure 6 / splinters : GPU 7.649 ms, 36 detached
+PASS structure 7 / fibers : GPU 10.78 ms, 36 detached
+PASS structure 8 / goo : GPU 16.973 ms, 36 detached
+PASS structure 9 / rings : GPU 16.462 ms, 36 detached
+PASS structure 10 / mixed : GPU 12.519 ms, 36 detached
+PASS identical placement fingerprint for all modes and cold/warm cache: 33c839dd97aee283

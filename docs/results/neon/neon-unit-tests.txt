@@ -1,0 +1,14 @@
+Internal ctest changing into directory: C:/Games/ParticleQuake/build/aftershock
+Test project C:/Games/ParticleQuake/build/aftershock
+    Start 1: structural_physics
+1/4 Test #1: structural_physics ...............   Passed    0.17 sec
+    Start 2: physics_pressure
+2/4 Test #2: physics_pressure .................   Passed    0.94 sec
+    Start 3: gpu_contracts
+3/4 Test #3: gpu_contracts ....................   Passed    0.05 sec
+    Start 4: gib_motion
+4/4 Test #4: gib_motion .......................   Passed    0.05 sec
+
+100% tests passed, 0 tests failed out of 4
+
+Total Test time (real) =   1.22 sec

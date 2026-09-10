@@ -1,0 +1,2 @@
+PASS integrated Quake + structural sidecar save/load
+PASS live renderer switch preserves destruction

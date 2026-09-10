@@ -1,0 +1,22 @@
+{
+  "executableSha256": "17C07753AC52EE1A6C4918EC399FEAFC3EC45B164ED0D3EF63F6D617AF032548",
+  "recorded": "2026-09-08T10:16:36.9828847-07:00",
+  "newModes": 10,
+  "modeCaptures": 31,
+  "ctestTargets": 4,
+  "faithfulGameplayHash": "caa13ac253fcfc0d",
+  "particleModesLog": "particle-modes-test.txt",
+  "maximumParticleCount": 8192,
+  "transparencyModesTested": [
+    0,
+    1,
+    2
+  ],
+  "gibFixture": {
+    "splats": 749,
+    "smears": 627,
+    "spawned": 96,
+    "floorContacts": 73,
+    "wallContacts": 87
+  }
+}

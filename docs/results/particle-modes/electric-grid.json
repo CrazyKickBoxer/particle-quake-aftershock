@@ -1,0 +1,1 @@
+{"measurement":"host frames, not display presentation","frames":165,"seconds":2.816799,"host_fps":58.222,"p50_ms":16.659,"p95_ms":17.332,"p99_ms":61.054,"physics_last_ms":0.464,"bodies":36,"detached":36,"errors":0,"gpu_frame_mean_ms":5.463,"physics_mean_ms":0.392,"static_samples_bytes":7686420,"surface_metadata_bytes":529536,"physx_live_bytes":2435923,"physx_peak_bytes":2461067}

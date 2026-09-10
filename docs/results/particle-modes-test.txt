@@ -1,0 +1,15 @@
+Generated original BSP29 arena: 60 faces, 21139 bytes
+PASS mode: living-stone
+PASS mode: volcanic
+PASS mode: sandstorm
+PASS mode: crystal
+PASS mode: corrupted-flesh
+PASS mode: industrial-rust
+PASS mode: spectral
+PASS mode: frozen-ruins
+PASS mode: electric-grid
+PASS mode: cosmic-dust
+PASS gib collision fixture: Aftershock gore: spawned=96 wall=87 floor=73 smears=627 splats=749
+PASS transparency 0, maximum effects, reduced flashes
+PASS transparency 2, maximum effects, reduced flashes
+PASS gib disable switch

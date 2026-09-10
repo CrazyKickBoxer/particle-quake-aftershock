@@ -1,0 +1,7 @@
+Built: 2026-09-08T14:52:53.5388028-07:00
+Executable SHA256: 5CD67ED7BBBD680D41A4FEA74B7F17C9CDFF46F4C5C2FC3D9058534B76BBE82F
+Final build: Release, RTX 2050, Vulkan HDR, CPU PhysX/Blast
+Current executable: fidelity matrix, shader/physics/gib CTests, launcher self-test, all structure switching cases.
+Full gameplay/persistence regression build SHA256: C174593590FFF201298EBB8AF923F1D88E7659D6EA6D1BCB926E1C6D9B4E064D
+Changes since that regression run: benchmark MSAA/render-scale fields, default launcher AA choice, and formatting.
+Khronos validation layer not installed; runtime tests ran without -validation.

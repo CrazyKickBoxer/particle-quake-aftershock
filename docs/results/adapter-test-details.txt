@@ -1,0 +1,78 @@
+Start testing: Sep 08 12:09 Pacific Daylight Time
+----------------------------------------------------------
+1/4 Testing: structural_physics
+1/4 Test: structural_physics
+Command: "C:/Games/ParticleQuake/build/aftershock/Release/aftershock_physics_tests.exe"
+Directory: C:/Games/ParticleQuake/build/aftershock
+"structural_physics" start time: Sep 08 12:09 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+Aftershock: PhysX 5.6 CPU and NVIDIA Blast initialized.
+PASS: Blast repeated fracture, PhysX motion, finite transforms, exact save/load positions, corruption rejection, Unicode paths, unsupported island collapse, secondary split, clean reset
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Passed.
+"structural_physics" end time: Sep 08 12:09 Pacific Daylight Time
+"structural_physics" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/4 Testing: physics_pressure
+2/4 Test: physics_pressure
+Command: "C:/Games/ParticleQuake/build/aftershock/Release/aftershock_pressure_tests.exe"
+Directory: C:/Games/ParticleQuake/build/aftershock
+"physics_pressure" start time: Sep 08 12:09 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+Aftershock: PhysX 5.6 CPU and NVIDIA Blast initialized.
+cycle=0 bodies=1024 events=16 PhysX-live=15549593 PhysX-peak=16005097 errors=0
+Aftershock: PhysX 5.6 CPU and NVIDIA Blast initialized.
+cycle=1 bodies=1024 events=16 PhysX-live=15565945 PhysX-peak=16019145 errors=0
+Aftershock: PhysX 5.6 CPU and NVIDIA Blast initialized.
+cycle=2 bodies=1024 events=16 PhysX-live=15565913 PhysX-peak=16019145 errors=0
+Aftershock: PhysX 5.6 CPU and NVIDIA Blast initialized.
+cycle=3 bodies=1024 events=16 PhysX-live=15549625 PhysX-peak=16002761 errors=0
+Aftershock: PhysX 5.6 CPU and NVIDIA Blast initialized.
+cycle=4 bodies=1024 events=16 PhysX-live=15566105 PhysX-peak=16020425 errors=0
+PASS: 5 cycles, 1024 bodies, 16 repeated explosions/cycle, finite state, capacity rejection, bounded allocator peak and zero outstanding PhysX allocations after shutdown
+<end of output>
+Test time =   0.90 sec
+----------------------------------------------------------
+Test Passed.
+"physics_pressure" end time: Sep 08 12:10 Pacific Daylight Time
+"physics_pressure" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/4 Testing: gpu_contracts
+3/4 Test: gpu_contracts
+Command: "C:/Games/ParticleQuake/build/aftershock/Release/aftershock_contract_tests.exe" "C:/Games/ParticleQuake/build"
+Directory: C:/Games/ParticleQuake/build/aftershock
+"gpu_contracts" start time: Sep 08 12:10 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+PASS: 65,536 exact coordinate pairs; worst quantization error 0.0625 source texels/axis; invalid range rejection; reflected vertex types, descriptors and alias UBO offsets
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"gpu_contracts" end time: Sep 08 12:10 Pacific Daylight Time
+"gpu_contracts" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/4 Testing: gib_motion
+4/4 Test: gib_motion
+Command: "C:/Games/ParticleQuake/build/aftershock/Release/aftershock_gib_tests.exe"
+Directory: C:/Games/ParticleQuake/build/aftershock
+"gib_motion" start time: Sep 08 12:10 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+PASS: 4096 forward launches; floor slide 122.6 units; wall/floor contacts; settling; high-speed sweep; deterministic replay
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"gib_motion" end time: Sep 08 12:10 Pacific Daylight Time
+"gib_motion" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Sep 08 12:10 Pacific Daylight Time

@@ -1,0 +1,8 @@
+PASS rocket-0: actual rockets, full panel removal, WALK traversal, threaded rendering
+PASS rocket-1: actual rockets, full panel removal, WALK traversal, threaded rendering
+Generated original BSP29 arena: 60 faces, 21139 bytes
+PASS arena-0: partial breach, physical rubble pushing, WALK traversal
+PASS arena-1: partial breach, physical rubble pushing, WALK traversal
+PASS faithful normalized entity state: caa13ac253fcfc0d
+PASS integrated Quake + structural sidecar save/load
+PASS live renderer switch preserves destruction
