@@ -15,6 +15,7 @@
 #include <uxtheme.h>
 #include <vector>
 #include <windows.h>
+#include <shellapi.h>
 #pragma comment(lib, "uxtheme.lib")
 #include <cmath>
 #include <cwctype>
@@ -91,9 +92,7 @@ std::wstring base() {
     p = p.parent_path();
   return p.wstring();
 }
-bool validData() {
-  std::filesystem::path p =
-      std::filesystem::path(base()) / L"id1" / L"pak0.pak";
+bool isValidPak(const std::filesystem::path &p) {
   HANDLE f = CreateFileW(p.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
                          OPEN_EXISTING, 0, nullptr);
   if (f == INVALID_HANDLE_VALUE)
@@ -107,6 +106,127 @@ bool validData() {
   return read == 12 && memcmp(header, "PACK", 4) == 0 && header[1] >= 12 &&
          header[2] > 0 && header[2] % 64 == 0 &&
          uint64_t(header[1]) + header[2] <= uint64_t(size.QuadPart);
+}
+bool validData() {
+  return isValidPak(std::filesystem::path(base()) / L"id1" / L"pak0.pak");
+}
+bool hasValidId1(const std::wstring &folder) {
+  return isValidPak(std::filesystem::path(folder) / L"id1" / L"pak0.pak");
+}
+// GOG and older Steam installers are frequently 32-bit and register under
+// the WOW6432Node registry view even on a 64-bit machine running this (native
+// x64) launcher; a plain lookup only sees the native 64-bit view, so every
+// query here retries once under the 32-bit view before giving up.
+std::wstring registryString(HKEY root, const std::wstring &subkey,
+                             const wchar_t *value) {
+  wchar_t buf[MAX_PATH]{};
+  DWORD size = sizeof(buf);
+  if (RegGetValueW(root, subkey.c_str(), value, RRF_RT_REG_SZ, nullptr, buf,
+                    &size) == ERROR_SUCCESS)
+    return buf;
+  size = sizeof(buf);
+  if (RegGetValueW(root, subkey.c_str(), value,
+                    RRF_RT_REG_SZ | RRF_SUBKEY_WOW6432KEY, nullptr, buf,
+                    &size) == ERROR_SUCCESS)
+    return buf;
+  return L"";
+}
+std::vector<std::wstring> registrySubkeys(HKEY root,
+                                           const std::wstring &subkey) {
+  std::vector<std::wstring> names;
+  HKEY key;
+  REGSAM views[] = {KEY_READ, KEY_READ | KEY_WOW64_32KEY};
+  for (REGSAM view : views) {
+    if (RegOpenKeyExW(root, subkey.c_str(), 0, view, &key) != ERROR_SUCCESS)
+      continue;
+    for (DWORD i = 0;; ++i) {
+      wchar_t name[256];
+      DWORD nameLength = 256;
+      if (RegEnumKeyExW(key, i, name, &nameLength, nullptr, nullptr, nullptr,
+                         nullptr) != ERROR_SUCCESS)
+        break;
+      names.emplace_back(name);
+    }
+    RegCloseKey(key);
+    if (!names.empty())
+      break;
+  }
+  return names;
+}
+// Steam library folders beyond the primary install are listed in a small,
+// simply-quoted VDF text file; a full VDF parser is unnecessary here.
+std::vector<std::wstring> steamLibraryFolders(const std::wstring &steamPath) {
+  std::vector<std::wstring> libraries{steamPath};
+  std::filesystem::path vdf =
+      std::filesystem::path(steamPath) / L"steamapps" / L"libraryfolders.vdf";
+  std::error_code error;
+  if (!std::filesystem::exists(vdf, error))
+    return libraries;
+  FILE *file = _wfopen(vdf.c_str(), L"rb");
+  if (!file)
+    return libraries;
+  std::string contents;
+  char chunk[4096];
+  size_t read;
+  while ((read = fread(chunk, 1, sizeof(chunk), file)) > 0)
+    contents.append(chunk, read);
+  fclose(file);
+  size_t pos = 0;
+  while ((pos = contents.find("\"path\"", pos)) != std::string::npos) {
+    size_t open = contents.find('"', pos + 6);
+    size_t close = open == std::string::npos
+                       ? std::string::npos
+                       : contents.find('"', open + 1);
+    if (open == std::string::npos || close == std::string::npos)
+      break;
+    std::string raw = contents.substr(open + 1, close - open - 1);
+    std::wstring path;
+    for (size_t i = 0; i < raw.size(); ++i) {
+      if (raw[i] == '\\' && i + 1 < raw.size() && raw[i + 1] == '\\') {
+        path += L'\\';
+        ++i;
+      } else {
+        path += wchar_t((unsigned char)raw[i]);
+      }
+    }
+    libraries.push_back(path);
+    pos = close + 1;
+  }
+  return libraries;
+}
+std::wstring findSteamQuake() {
+  std::wstring steamPath =
+      registryString(HKEY_CURRENT_USER, L"SOFTWARE\\Valve\\Steam", L"SteamPath");
+  if (steamPath.empty())
+    steamPath = registryString(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Valve\\Steam",
+                                L"InstallPath");
+  if (steamPath.empty())
+    return L"";
+  for (const std::wstring &library : steamLibraryFolders(steamPath)) {
+    std::wstring candidate =
+        (std::filesystem::path(library) / L"steamapps" / L"common" / L"Quake")
+            .wstring();
+    if (hasValidId1(candidate))
+      return candidate;
+  }
+  return L"";
+}
+std::wstring findGogQuake() {
+  for (const std::wstring &id :
+       registrySubkeys(HKEY_LOCAL_MACHINE, L"SOFTWARE\\GOG.com\\Games")) {
+    std::wstring path =
+        registryString(HKEY_LOCAL_MACHINE,
+                        L"SOFTWARE\\GOG.com\\Games\\" + id, L"path");
+    if (!path.empty() && hasValidId1(path))
+      return path;
+  }
+  return L"";
+}
+// Only ever reads the registry and checks for an existing id1/pak0.pak on
+// disk - no network access, nothing is downloaded or written here.
+std::wstring findInstalledQuake() {
+  std::wstring found = findSteamQuake();
+  return found.empty() ? findGogQuake() : found;
 }
 std::wstring command() {
   const wchar_t *renderers[] = {L"classic", L"particle"},
@@ -255,11 +375,13 @@ void save() {
             ini.c_str());
 }
 void restore() {
-  SetWindowTextW(
-      data,
-      read(L"data",
-           L"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Quake\\id1")
-          .c_str());
+  std::wstring savedData = read(L"data", L"");
+  if (savedData.empty()) {
+    savedData = findInstalledQuake();
+    if (savedData.empty())
+      savedData = L"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Quake\\id1";
+  }
+  SetWindowTextW(data, savedData.c_str());
   SetWindowTextW(map, read(L"map", L"e1m1").c_str());
   SetWindowTextW(extra, read(L"extra", L"").c_str());
   SetWindowTextW(mod, read(L"mod", L"").c_str());
@@ -738,6 +860,22 @@ LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
           SetWindowTextW(data, path);
         CoTaskMemFree(pidl);
       }
+    } else if (id == 133) {
+      std::wstring found = findInstalledQuake();
+      if (!found.empty())
+        SetWindowTextW(data, found.c_str());
+      else
+        MessageBoxW(
+            h,
+            L"No Steam or GOG installation of Quake was found on this "
+            L"machine (registry and known library folders only - nothing "
+            L"was downloaded or changed). Use Browse to point at your Quake "
+            L"folder yourself, or use \"Get shareware Quake\" if you don't "
+            L"own a copy.",
+            L"Not found", MB_ICONINFORMATION);
+    } else if (id == 134) {
+      ShellExecuteW(h, L"open", L"https://archive.org/details/Quake_802",
+                    nullptr, nullptr, SW_SHOWNORMAL);
     } else if (id == 113) {
       loading = true;
       HWND controls[] = {renderer,   mode,  style,   density,   preset, skill,

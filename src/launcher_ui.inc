@@ -17,7 +17,8 @@ const wchar_t *pages[] = {L"Game & launch",         L"Display",
 HWND quality, qualityButton;
 HWND searchLabel;
 HWND panel, navigation, search, pageTitle, pageHint, browse, launchButton,
-    saveButton, copyButton, resetButton, prismButton, fineButton, bubble;
+    saveButton, copyButton, resetButton, prismButton, fineButton, bubble,
+    steamGogButton, sharewareButton;
 int currentPage = 0, scrollY = 0, contentHeight = 0;
 std::wstring helpText;
 HBRUSH yellow;
@@ -210,7 +211,10 @@ void layoutRows() {
   std::wstring hint = std::to_wstring(count) +
                       L" settings  /  Click a yellow ? for an explanation";
   SetWindowTextW(pageHint, hint.c_str());
-  ShowWindow(browse, query.empty() && currentPage == 0 ? SW_SHOW : SW_HIDE);
+  bool page0 = query.empty() && currentPage == 0;
+  ShowWindow(browse, page0 ? SW_SHOW : SW_HIDE);
+  ShowWindow(steamGogButton, page0 ? SW_SHOW : SW_HIDE);
+  ShowWindow(sharewareButton, page0 ? SW_SHOW : SW_HIDE);
   InvalidateRect(panel, nullptr, TRUE);
 }
 void layout() {
@@ -229,6 +233,8 @@ void layout() {
   MoveWindow(pageTitle, px(264), px(80), w - px(450), px(34), TRUE);
   MoveWindow(pageHint, px(264), px(119), w - px(290), px(24), TRUE);
   MoveWindow(browse, w - px(144), px(80), px(120), px(30), TRUE);
+  MoveWindow(steamGogButton, w - px(292), px(80), px(140), px(30), TRUE);
+  MoveWindow(sharewareButton, w - px(450), px(80), px(150), px(30), TRUE);
   MoveWindow(panel, px(248), px(152), w - px(272), h - px(346), TRUE);
   MoveWindow(preview, px(24), h - px(170), w - px(48), px(82), TRUE);
   MoveWindow(resetButton, px(24), h - px(64), px(140), px(38), TRUE);
@@ -752,6 +758,11 @@ void buildPages() {
        L"containing spaces.",
        111, L"");
   browse = control(L"BUTTON", L"Browse...", WS_TABSTOP, 0, 0, 120, 30, 101);
+  steamGogButton = control(L"BUTTON", L"Find Steam/GOG", WS_TABSTOP, 0, 0, 140,
+                            30, 133);
+  sharewareButton =
+      control(L"BUTTON", L"Get shareware Quake", WS_TABSTOP, 0, 0, 150, 30,
+              134);
   preview = control(L"EDIT", L"",
                     ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL |
                         WS_TABSTOP,

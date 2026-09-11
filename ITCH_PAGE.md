@@ -39,8 +39,13 @@ awareness, not revenue.
 ### Install
 
 1. Download and unzip `ParticleQuake-Aftershock-v0.1.0-win64.zip` anywhere.
-2. Either copy your `id1` folder next to `vkQuake.exe`, or launch with
-   `-basedir "<path to your Quake install>"`.
+2. Run `vkquake_launcher.exe` and click **Find Steam/GOG** — it checks
+   the registry and known library folders for an existing Quake
+   install (nothing is downloaded or changed). Don't own a copy? Click
+   **Get shareware Quake** to open the official free shareware release
+   on the Internet Archive. Or copy your `id1` folder next to
+   `vkQuake.exe` yourself, or launch with `-basedir "<path to your
+   Quake install>"`.
 3. Run `vkQuake.exe` directly, or `vkquake_launcher.exe` for a menu
    with renderer and destruction-sandbox presets.
 4. No Vulkan SDK or dev tools needed — just a Vulkan 1.1-capable GPU

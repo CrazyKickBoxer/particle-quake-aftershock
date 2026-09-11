@@ -18,7 +18,13 @@ episode from id Software. Either way you need a folder containing an
 ----------
 Unzip this archive anywhere. Then either:
 
-  - Copy your `id1` folder next to vkQuake.exe, so you have:
+  - Open vkquake_launcher.exe and click "Find Steam/GOG" - it checks
+    the registry and known library folders for an existing Quake
+    install and fills in the data folder automatically. Nothing is
+    downloaded or changed; it only looks. If you don't own a copy,
+    click "Get shareware Quake" to open the official free shareware
+    release on the Internet Archive in your browser.
+  - Or copy your `id1` folder next to vkQuake.exe, so you have:
       <this folder>\id1\pak0.pak
       <this folder>\id1\pak1.pak
   - Or launch with -basedir pointing at your existing Quake install:
