@@ -12,7 +12,7 @@ The [Neon Cathedral preset](docs/NEON_CATHEDRAL.md) follows the supplied referen
 
 [![Particle Quake: Aftershock — Neon Cathedral gameplay](exports/ParticleQuake-Aftershock-poster.jpg)](https://github.com/CrazyKickBoxer/particle-quake-aftershock/releases/download/v0.1.0/ParticleQuake-Aftershock-neon-cathedral.mp4)
 
-Click the image for a 60-second gameplay clip (HEVC/MP4, 1280x720). It plays inline in most browsers; if yours won't play HEVC, download it and open it in VLC or a similar player.
+Click the image for a 60-second gameplay clip (H.264/MP4, 1280x720) — plays inline in any modern browser.
 
 ## Play
 
