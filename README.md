@@ -14,9 +14,19 @@ The [Neon Cathedral preset](docs/NEON_CATHEDRAL.md) follows the supplied referen
 
 Click the image for a 60-second gameplay clip (H.264/MP4, 1280x720) — plays inline in any modern browser.
 
+## Download
+
+Grab the latest build from the [Releases page](https://github.com/CrazyKickBoxer/particle-quake-aftershock/releases/latest):
+
+- **`ParticleQuake-Aftershock-v0.1.0-setup.exe`** — installer (per-user install, Start Menu shortcut, clean uninstall via Windows Settings; no admin rights needed).
+- **`ParticleQuake-Aftershock-v0.1.0-win64.zip`** — portable, no install: unzip and run.
+- **`ParticleQuake-Aftershock-v0.1.0-source.zip`** — GPL source snapshot (or just clone this repo).
+
+None of these include Quake game data — see [Play](#play) below.
+
 ## Play
 
-Open `bin/vkquake_launcher.exe`. Your detected data folder is:
+Open `bin/vkquake_launcher.exe` (or the installed Start Menu shortcut). Your detected data folder is:
 
 ```text
 C:\Program Files (x86)\Steam\steamapps\common\Quake\id1
@@ -110,7 +120,9 @@ Use the corresponding CMake path if Visual Studio is installed elsewhere. Both g
 
 ## Packaging and source
 
-`scripts/package.ps1` creates a local executable archive and matching source snapshot under `build/dist`. It excludes user game assets, saves, screenshots, and derived caches. No package is uploaded or published. Keep the source snapshot and notices with the executable archive when handing this build to another developer. Upstream codec binary provenance is recorded in the dependency inventory; a reproducible rebuild of all those codecs remains outstanding.
+`scripts/package.ps1` creates a local executable archive and matching source snapshot under `build/dist`. It excludes user game assets, saves, screenshots, and derived caches. Keep the source snapshot and notices with the executable archive when handing this build to another developer. Upstream codec binary provenance is recorded in the dependency inventory; a reproducible rebuild of all those codecs remains outstanding.
+
+`scripts/make-installer.ps1` builds `ParticleQuake-Aftershock-<version>-setup.exe` from the same packaged runtime folder, using [Inno Setup](https://jrsoftware.org/isinfo.php) (`winget install --id JRSoftware.InnoSetup -e` if you don't have it). The installer runs per-user with no admin rights (`PrivilegesRequired=lowest` in `scripts/installer.iss`) and registers a normal Windows uninstaller.
 
 Aftershock integration code is GPL-2.0-or-later, consistent with the engine. PhysX/Blast at the pinned revision retain their BSD notices. Quake game data is separately owned and must be supplied by the player.
 
