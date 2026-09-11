@@ -57,7 +57,7 @@ Open the console (`~` or `` ` ``) and try:
 
 ```
 r_holo 1              // switch to the point-cloud renderer
-as_style inferno       // pick one of 14 material styles
+as_style 2              // pick one of 14 material styles, 0..13 (2 = inferno)
 as_structure 11        // Neon Cathedral preset (cyan/gold architecture)
 holo_physics fine       // enable the cosmetic reactive-physics layer
 as_mode destruction    // enable the PhysX/Blast wall-destruction sandbox (reloads the map)

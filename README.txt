@@ -43,7 +43,7 @@ First-run check
 From a normal launch, open the console (usually the ~ or ` key) and run:
 
     r_holo 1
-    as_style inferno
+    as_style 2
 
 The world should redraw as dense fields of colored points instead of
 textured triangles. Then run:

@@ -1,80 +1,118 @@
-# Particle Quake: Aftershock
+# ✨ Particle Quake: Aftershock
 
-**New:** High fidelity and floor reflections are enabled for Neon Cathedral. Separate launcher checkboxes and live console toggles control them. [Fidelity controls and limits](docs/PARTICLE_FIDELITY.md).
+**Quake, rebuilt out of light and rubble.** A Windows x64 vkQuake fork that
+replaces world and model geometry with a GPU point-cloud renderer, adds a
+cosmetic reactive-physics glow layer, and bolts on real **NVIDIA PhysX +
+Blast** wall destruction — rockets can blow structural, walk-through holes
+in the map.
 
-A playable Windows x64 vkQuake extension with ten layered particle mesh structures, Vulkan surface splats, and real CPU PhysX + NVIDIA Blast destruction. Rockets can remove complete eligible wall sections, expose their interiors, and create passages the player can walk through. Detached slabs remain physical objects and survive sandbox saves.
+![Particle Quake: Aftershock gameplay — Neon Cathedral and a live explosion](exports/ParticleQuake-Aftershock-hero.gif)
 
-This build implements and verifies the central wall-breach experience. It is **not the completed release described by every requirement in `PARTICLE_QUAKE_BUILD_PROMPT.md`**. See [feature status](docs/FEATURES.md) for the implemented, verified, limited, and unfinished areas.
+> 🆕 **New:** High-fidelity HDR + floor reflections for Neon Cathedral, with live launcher/console toggles. See [fidelity controls](docs/PARTICLE_FIDELITY.md).
 
-The [Neon Cathedral preset](docs/NEON_CATHEDRAL.md) follows the supplied reference: cyan/gold point-cloud architecture, magenta monsters, bright surface boundaries, dark skies, and screen-space glow.
+[Download the full 60s clip](https://github.com/CrazyKickBoxer/particle-quake-aftershock/releases/download/v0.1.0/ParticleQuake-Aftershock-neon-cathedral.mp4) (H.264/MP4, 1280×720, 79MB) — GitHub forces a download rather than inline playback for release assets in every browser, so the GIF above is what actually plays on this page.
 
-## Video
+> ⚠️ **Honesty check:** this build implements and verifies the central
+> wall-breach experience. It is **not** the completed release described by
+> every requirement in `PARTICLE_QUAKE_BUILD_PROMPT.md`. See
+> [feature status](docs/FEATURES.md) for the full verified / implemented /
+> limited / not-started breakdown — no marketing gloss, just the table.
 
-![Particle Quake: Aftershock — Neon Cathedral gameplay](exports/ParticleQuake-Aftershock-neon-cathedral.gif)
+---
 
-[Download the full 60-second clip](https://github.com/CrazyKickBoxer/particle-quake-aftershock/releases/download/v0.1.0/ParticleQuake-Aftershock-neon-cathedral.mp4) (H.264/MP4, 1280x720, 79MB). GitHub serves release assets as a forced download rather than an inline player, in every browser — the GIF above is the one thing guaranteed to actually play on this page.
+## 🎨 What makes it different
 
-## Download
+| | |
+|---|---|
+| 🌌 **Point-cloud renderer** | Every wall, floor, and monster redrawn as dense fields of colored points instead of triangles |
+| 🎭 **14 material styles** | `faithful` → `cosmic-dust`, each a distinct animated palette — see [particle modes](docs/PARTICLE_MODES.md) |
+| 🏛️ **Neon Cathedral preset** | Cyan/gold architecture, magenta monster silhouettes, HDR bloom, screen-space floor reflections |
+| 💥 **Real destruction** | PhysX + Blast fracture actual wall sections; rubble physically blocks movement, not just visuals |
+| ✨ **Holo Physics** | A cosmetic GPU disturbance layer that reacts to combat — verified to never touch `SV_Move`, `SV_TraceLine`, or the gameplay RNG |
+| 🩸 **Gore & goo** | Directional gib physics, wall splashes, floor slides |
 
-Grab the latest build from the [Releases page](https://github.com/CrazyKickBoxer/particle-quake-aftershock/releases/latest):
+Full technical writeup (real buffer sizes, dispatch shapes, measured frame
+times, no invented numbers): [RELEASE_REPORT.md](RELEASE_REPORT.md).
 
-- **`ParticleQuake-Aftershock-v0.1.0-setup.exe`** — installer (per-user install, Start Menu shortcut, clean uninstall via Windows Settings; no admin rights needed).
-- **`ParticleQuake-Aftershock-v0.1.0-win64.zip`** — portable, no install: unzip and run.
-- **`ParticleQuake-Aftershock-v0.1.0-source.zip`** — GPL source snapshot (or just clone this repo).
+---
 
-None of these include Quake game data — see [Play](#play) below.
+## 📥 Download
 
-## Play
+Grab the latest build from the **[Releases page](https://github.com/CrazyKickBoxer/particle-quake-aftershock/releases/latest)**:
 
-Open `bin/vkquake_launcher.exe` (or the installed Start Menu shortcut). Your detected data folder is:
+| File | What it is |
+|---|---|
+| `ParticleQuake-Aftershock-v0.1.0-setup.exe` | 🖥️ Installer — per-user, Start Menu shortcut, clean uninstall, **no admin rights needed** |
+| `ParticleQuake-Aftershock-v0.1.0-win64.zip` | 📦 Portable — unzip and run, no install |
+| `ParticleQuake-Aftershock-v0.1.0-source.zip` | 🧬 GPL source snapshot (or just clone this repo) |
 
-```text
-C:\Program Files (x86)\Steam\steamapps\common\Quake\id1
-```
+> 🚫 **No Quake game data ships in any of these.** You need your own legally
+> obtained copy — Steam, GOG, or the free official shareware episode. The
+> launcher can find an existing Steam/GOG install for you (registry +
+> library-folder scan, read-only, nothing downloaded), or point you at the
+> official shareware release. See [Play](#-play) below.
 
-Select **Rocket demo setup**, then **Launch Aftershock**, to watch real rockets destroy an automatically extracted wall in `e1m1`. This uses a fixed camera and scripted player inputs, then exits after 540 engine frames. It is an actual Quake weapon test, not a particle-only explosion. Select **Defaults** to return to ordinary interactive play.
+---
+
+## ▶️ Play
+
+Open `bin/vkquake_launcher.exe` (or the installed Start Menu shortcut).
+
+Click **Find Steam/GOG** to auto-detect an existing install, or **Get
+shareware Quake** to open the official free release. Then select **Rocket
+demo setup → Launch Aftershock** to watch real rockets destroy an
+automatically extracted wall in `e1m1` — a fixed camera, scripted inputs,
+540 engine frames, an actual weapon test rather than a scripted explosion.
+Select **Defaults** to return to ordinary interactive play.
 
 The launcher choices are independent:
 
-- **Renderer:** Classic triangles or Particle surfaces.
-- **World:** Faithful Quake or Destruction sandbox.
-- **Particle structure:** Neon Cathedral, ten mesh/disc shapes, and the original squares. Neon Cathedral, Fine density, and three depth layers are the defaults.
-- **Material colors:** Original Quake colors or the existing animated material styles.
+| Choice | Options |
+|---|---|
+| **Renderer** | Classic triangles, or Particle surfaces |
+| **World** | Faithful Quake, or Destruction sandbox |
+| **Particle structure** | Neon Cathedral, 10 mesh/disc shapes, or the original squares |
+| **Material colors** | Original Quake colors, or 10 animated material styles |
 
-See [particle structures](docs/PARTICLE_STRUCTURES.md) for every shape, controls, and behavior.
+See [particle structures](docs/PARTICLE_STRUCTURES.md) for every shape,
+control, and behavior.
 
-Use Faithful Quake for ordinary campaigns, demos, and multiplayer. Destruction is a local single-player sandbox; breaking campaign architecture can bypass progression. Only validated closed rectangular structures are currently eligible. Outer map seals, ambiguous solids, and unsupported geometry remain intact.
+Use **Faithful Quake** for ordinary campaigns, demos, and multiplayer.
+**Destruction** is a local single-player sandbox — breaking campaign
+architecture can bypass progression. Only validated closed rectangular
+structures are currently eligible; outer map seals, ambiguous solids, and
+unsupported geometry remain intact.
 
-Quake movement and weapon controls remain available. Press the console key and use:
+### 🎮 Console quick reference
+
+Quake movement and weapon controls remain available. Press the console key
+(`` ~ `` / `` ` ``) and try:
 
 ```text
-as_renderer 0             // classic; preserves existing damage
-as_renderer 1             // particle; preserves existing damage
-as_structure 11          // reference-inspired Neon Cathedral (1..10 meshes; 0 squares)
-as_layers 3              // 1..4 independent depth layers, applied live
-as_style 0               // faithful appearance (1 enhanced, 2 inferno, 3 inferno-color)
-as_explode               // diagnostic explosion along the view direction
-as_inspect               // eligible panels, bodies, and physics diagnostics
-as_reset                 // reload the original map
-as_mode faithful         // change world mode and reload
-as_mode destruction      // change world mode and reload
-as_effects 0             // disable additional dust/sparks
-as_shake 0               // remove additional render-view shake
-as_reduced_flashes 1     // reduce additional effect flashes
-as_style 5               // Volcanic (new modes use IDs 4 through 13)
-as_particle_amount 4     // 1..4; up to 8,192 GPU particles per explosion
-as_gibs 1                // directional cosmetic gibs, including native gib proxies
-as_goo 1                 // wall splashes, drips and floor smears
-as_gore_stats            // gib, collision and decal counters
+as_renderer 1             // switch to the particle renderer
+as_style 2                 // pick a material style, 0..13 (2 = inferno; see docs/PARTICLE_MODES.md)
+as_structure 11            // Neon Cathedral (1..10 meshes; 0 = original squares)
+as_layers 3                // 1..4 independent depth layers, live
+as_mode destruction        // enable the PhysX wall-destruction sandbox (reloads map)
+as_explode                 // diagnostic explosion along the view direction
+as_reset                   // reload the original map
+r_holo_physics 1           // enable the cosmetic reactive-physics layer
+r_holo 0                   // back to stock vkQuake rendering
 ```
 
-`as_explode` is a debug command. Actual rockets, grenades, and QuakeC explosion temp-entities enter the authoritative destruction event path. Large rubble can obstruct a passage. Small bodies can be pushed by walking; jumping or another explosion can clear a pile.
+`as_explode` is a debug command — actual rockets, grenades, and QuakeC
+explosion temp-entities enter the real destruction event path. Large rubble
+can obstruct a passage; walking or another explosion can clear small
+debris. **Full cvar reference** (every `as_*` / `r_holo*` variable, defaults,
+and ranges): [HOLO.md](HOLO.md).
 
-Normal Quake `save` / `load` uses a matching `.sav.pqas` structural sidecar in destruction mode. Keep both files together. Missing, corrupt, or incompatible sidecars are rejected. Renderer changes do not heal damage; world-mode changes require reloading. Saves are tied to the current geometry/extractor and backend format, not promised portable across future builds.
+Normal Quake `save`/`load` uses a matching `.sav.pqas` structural sidecar in
+destruction mode — keep both files together. Renderer changes don't heal
+damage; world-mode changes require a reload.
 
-## Command line
+---
 
-From PowerShell in this directory:
+## 💻 Command line
 
 ```powershell
 & .\bin\vkQuake.exe -basedir 'C:\Program Files (x86)\Steam\steamapps\common\Quake' `
@@ -83,47 +121,69 @@ From PowerShell in this directory:
   -window -width 1280 -height 720 +map e1m1
 ```
 
-Supported values: renderer `classic|particle`, world `faithful|destruction`, physics `off|physx-cpu`, density `play|fine|showcase`, destruction preset `restrained|cinematic|cataclysm`. Appearance includes the original four styles and ten new animated modes: see [particle modes and goo](docs/PARTICLE_MODES.md) for names, controls and limits. `physx-gpu` is explicitly rejected; this build contains no CUDA simulation path. PhysX CPU still requires a Vulkan-capable GPU for vkQuake graphics.
+| Flag | Values |
+|---|---|
+| `-renderer` | `classic` \| `particle` |
+| `-worldmode` | `faithful` \| `destruction` |
+| `-physics` | `off` \| `physx-cpu` (`physx-gpu` is explicitly rejected — no CUDA path exists) |
+| `-style` | 14 names, see [particle modes](docs/PARTICLE_MODES.md) |
+| `-density` | `play` \| `fine` \| `showcase` |
+| `-destruction-preset` | `restrained` \| `cinematic` \| `cataclysm` |
 
-Explicit launch options are reapplied after archived configuration and before `+map`. Density changes take effect when the map reloads. Original PAK/BSP/MDL/SPR and mod search order remain owned by vkQuake. Mission packs and mod folders can be selected in the launcher; they have not received a full compatibility test pass.
+PhysX CPU still requires a Vulkan-capable GPU for vkQuake's own graphics.
+Explicit launch options win over archived config, applied before `+map`.
+Original PAK/BSP/MDL/SPR and mod search order remain owned by vkQuake.
 
-The launcher saves `aftershock.ini` beside its executable. If that directory is not writable, it uses `%LOCALAPPDATA%\ParticleQuake\aftershock.ini` and `userdata`. The launcher never copies your PAKs. Samples are cached beneath the selected user directory in `aftershock-cache`.
+---
 
-## Build
+## 🛠️ Build from source
 
-Requirements: Windows x64, Git, Visual Studio **2022** Build Tools with Desktop development with C++, v143, Windows SDK, and the bundled CMake component. This snapshot includes the modified `engine` source. Do not replace it with an unmodified vkQuake clone.
+**Requirements:** Windows x64, Git, Visual Studio **2022** Build Tools
+(Desktop development with C++, v143, Windows SDK, bundled CMake). This
+snapshot includes the modified `engine` source — don't replace it with an
+unmodified vkQuake clone.
 
 ```powershell
-.\scripts\bootstrap.ps1    # fetch pinned PhysX/Blast and glslang; build dependencies and game
+.\scripts\bootstrap.ps1    # fetch pinned PhysX/Blast + glslang, build everything
 .\scripts\build.ps1        # subsequent Release builds
 ```
 
-The bootstrap verifies the PhysX commit and shader-tool archive checksum, applies the documented CPU-only SDK build adjustment, builds the native adapter and launcher, compiles/embeds SPIR-V, and builds vkQuake. Only Release x64 is supported by these scripts. Dependency pins and license sources are in [DEPENDENCIES.md](docs/DEPENDENCIES.md).
+`bootstrap.ps1` verifies the PhysX commit and shader-tool archive checksum,
+applies the documented CPU-only SDK build adjustment, and builds the native
+adapter, launcher, and vkQuake. Only Release x64 is supported. Dependency
+pins and license sources: [DEPENDENCIES.md](docs/DEPENDENCIES.md).
 
-## Verify and measure
+### ✅ Verify and measure
 
 ```powershell
 $cmake = 'C:\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin'
 & "$cmake\ctest.exe" --test-dir build/aftershock -C Release --output-on-failure
 .\scripts\test-engine.ps1
-.\scripts\test-cache.ps1
-.\scripts\test-particle-modes.ps1
-.\scripts\test-structures.ps1
-.\scripts\test-neon.ps1
 .\scripts\benchmark.ps1
-.\scripts\record-results.ps1
 ```
 
-Use the corresponding CMake path if Visual Studio is installed elsewhere. Both game scripts accept `-Quake <base-folder>`. They run game processes sequentially because upstream's `qconsole.log` is shared. Test logs, exact commands, JSON results, and captures stay in ignored `build` folders. The original procedural arena is generated from `tests/arena_generator.cpp`; it still needs your Quake game code to run.
+[Validation and measurements](docs/VALIDATION.md) distinguish engine
+throughput from actual display presentation.
+[Architecture](docs/ARCHITECTURE.md), [geometry support](docs/GEOMETRY.md),
+and the [bug journal](docs/BUG_JOURNAL.md) describe the implementation and
+its limits.
 
-[Validation and measurements](docs/VALIDATION.md) distinguish engine throughput from actual display presentation. [Architecture](docs/ARCHITECTURE.md), [geometry support](docs/GEOMETRY.md), and the [bug journal](docs/BUG_JOURNAL.md) describe the implementation and its limits.
+### 📦 Package & installer
 
-## Packaging and source
+```powershell
+.\scripts\package.ps1          # runtime zip + source zip under build/dist
+.\scripts\make-installer.ps1   # setup.exe via Inno Setup, no admin rights required
+```
 
-`scripts/package.ps1` creates a local executable archive and matching source snapshot under `build/dist`. It excludes user game assets, saves, screenshots, and derived caches. Keep the source snapshot and notices with the executable archive when handing this build to another developer. Upstream codec binary provenance is recorded in the dependency inventory; a reproducible rebuild of all those codecs remains outstanding.
+---
 
-`scripts/make-installer.ps1` builds `ParticleQuake-Aftershock-<version>-setup.exe` from the same packaged runtime folder, using [Inno Setup](https://jrsoftware.org/isinfo.php) (`winget install --id JRSoftware.InnoSetup -e` if you don't have it). The installer runs per-user with no admin rights (`PrivilegesRequired=lowest` in `scripts/installer.iss`) and registers a normal Windows uninstaller.
+## ⚖️ License
 
-Aftershock integration code is GPL-2.0-or-later, consistent with the engine. PhysX/Blast at the pinned revision retain their BSD notices. Quake game data is separately owned and must be supplied by the player.
+**GPL-2.0-or-later**, consistent with vkQuake. PhysX/Blast at the pinned
+revision retain their BSD notices. Quake game data is separately owned and
+must be supplied by the player — see [NOTICE.md](NOTICE.md) for the full
+third-party breakdown.
 
-Neon architectural upgrades and visual-only nail ricochets are described in [NEON_NAILS.md](docs/NEON_NAILS.md). Use `as_nails 1` or `toggle as_nails` in the console.
+---
+
+Neon architectural upgrades and visual-only nail ricochets: [NEON_NAILS.md](docs/NEON_NAILS.md) (`as_nails 1`). Full devlog: [ITCH_DEVLOG.md](ITCH_DEVLOG.md).
