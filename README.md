@@ -8,6 +8,12 @@ This build implements and verifies the central wall-breach experience. It is **n
 
 The [Neon Cathedral preset](docs/NEON_CATHEDRAL.md) follows the supplied reference: cyan/gold point-cloud architecture, magenta monsters, bright surface boundaries, dark skies, and screen-space glow.
 
+## Video
+
+[![Particle Quake: Aftershock — Neon Cathedral gameplay](exports/ParticleQuake-Aftershock-poster.jpg)](https://github.com/CrazyKickBoxer/particle-quake-aftershock/releases/download/v0.1.0/ParticleQuake-Aftershock-neon-cathedral.mp4)
+
+Click the image for a 60-second gameplay clip (HEVC/MP4, 1280x720). It plays inline in most browsers; if yours won't play HEVC, download it and open it in VLC or a similar player.
+
 ## Play
 
 Open `bin/vkquake_launcher.exe`. Your detected data folder is:
