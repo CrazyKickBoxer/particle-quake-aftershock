@@ -10,9 +10,9 @@ The [Neon Cathedral preset](docs/NEON_CATHEDRAL.md) follows the supplied referen
 
 ## Video
 
-[![Particle Quake: Aftershock — Neon Cathedral gameplay](exports/ParticleQuake-Aftershock-poster.jpg)](https://github.com/CrazyKickBoxer/particle-quake-aftershock/releases/download/v0.1.0/ParticleQuake-Aftershock-neon-cathedral.mp4)
+![Particle Quake: Aftershock — Neon Cathedral gameplay](exports/ParticleQuake-Aftershock-neon-cathedral.gif)
 
-Click the image for a 60-second gameplay clip (H.264/MP4, 1280x720) — plays inline in any modern browser.
+[Download the full 60-second clip](https://github.com/CrazyKickBoxer/particle-quake-aftershock/releases/download/v0.1.0/ParticleQuake-Aftershock-neon-cathedral.mp4) (H.264/MP4, 1280x720, 79MB). GitHub serves release assets as a forced download rather than an inline player, in every browser — the GIF above is the one thing guaranteed to actually play on this page.
 
 ## Download
 
