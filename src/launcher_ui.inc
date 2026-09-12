@@ -326,6 +326,32 @@ qualityValues(const QualityPreset &q) {
           {L"as_nails", L"1"},
           {L"vid_fsaa", L"0"}};
 }
+// SMW lives in the screen-effects compute pass, and Neon fidelity swaps that
+// whole pass out for its own - so with both on, fidelity silently wins and SMW
+// draws nothing at all. Force fidelity off while SMW is on, remember what it
+// was, and hand it back when SMW is switched off again.
+void applySmwConflicts() {
+  if (!fidelity)
+    return;
+  HWND smw = nullptr;
+  for (auto &r : rows)
+    if (r.key == L"as_smw")
+      smw = r.value;
+  if (!smw)
+    return;
+  const bool on = SendMessageW(smw, BM_GETCHECK, 0, 0) == BST_CHECKED;
+  if (on && smwStashedFidelity < 0) {
+    smwStashedFidelity =
+        SendMessageW(fidelity, BM_GETCHECK, 0, 0) == BST_CHECKED ? 1 : 0;
+    SendMessageW(fidelity, BM_SETCHECK, BST_UNCHECKED, 0);
+  } else if (!on && smwStashedFidelity >= 0) {
+    SendMessageW(fidelity, BM_SETCHECK,
+                 smwStashedFidelity ? BST_CHECKED : BST_UNCHECKED, 0);
+    smwStashedFidelity = -1;
+  }
+  // Greyed out rather than merely unchecked, so it is obvious why it is off.
+  EnableWindow(fidelity, !on);
+}
 void refreshQuality() {
   if (!quality)
     return;

@@ -45,9 +45,13 @@ std::wstring findEngineDirectory(const std::wstring &launcherDirectory) {
   return launcherDirectory;
 }
 bool loading = true, selftest = false;
+// -1 = nothing stashed. Holds the user's Neon fidelity choice while SMW
+// mode has it forced off; see applySmwConflicts().
+int smwStashedFidelity = -1;
 int dpi = 96;
 int px(int x) { return MulDiv(x, dpi, 96); }
 void refreshQuality();
+void applySmwConflicts();
 std::wstring additionalCommand();
 void saveAdditional();
 bool saveSucceeded = true;
@@ -305,6 +309,7 @@ std::wstring command() {
   return cmd;
 }
 void update() {
+  applySmwConflicts();
   if (reflections && fidelity)
     EnableWindow(reflections,
                  choice(structure) == 11 &&
@@ -372,6 +377,12 @@ void save() {
     persist(L"Aftershock", ck[i],
             SendMessageW(checks[i], BM_GETCHECK, 0, 0) == BST_CHECKED ? L"1"
                                                                       : L"0",
+            ini.c_str());
+  // SMW keeps fidelity forced off, so the loop above would persist that forced
+  // value and lose the real preference across restarts. Write back what the
+  // user actually chose.
+  if (smwStashedFidelity >= 0)
+    persist(L"Aftershock", L"fidelity", smwStashedFidelity ? L"1" : L"0",
             ini.c_str());
 }
 void restore() {
@@ -505,7 +516,7 @@ bool checkLauncher() {
         (ok ? L"PASS" : L"FAIL") +
         std::wstring(L": live preview, PACK directory bounds, Windows quoting, "
                      L"Unicode arguments; settings validation, INI round trip, "
-                     L"search, presets, pages, yellow help\n") +
+                     L"search, presets, pages, yellow help, SMW conflicts\n") +
         command();
     int n = WideCharToMultiByte(CP_UTF8, 0, result.data(), int(result.size()),
                                 nullptr, 0, nullptr, nullptr);
@@ -633,6 +644,22 @@ bool checkSettingsUI() {
   SendMessageW(navigation, LB_SETCURSEL, 1, 0);
   layoutRows();
   ok = captureLauncher(window, L"launcher-quality-presets.bmp") && ok;
+  // SMW mode has to take Neon fidelity out of the way (fidelity replaces the
+  // same compute pass, so SMW would draw nothing), and has to hand the original
+  // setting back when it is switched off again.
+  for (auto &r : rows)
+    if (r.key == L"as_smw") {
+      SendMessageW(fidelity, BM_SETCHECK, BST_CHECKED, 0);
+      smwStashedFidelity = -1;
+      SendMessageW(r.value, BM_SETCHECK, BST_CHECKED, 0);
+      update();
+      ok = SendMessageW(fidelity, BM_GETCHECK, 0, 0) == BST_UNCHECKED &&
+           !IsWindowEnabled(fidelity) && ok;
+      SendMessageW(r.value, BM_SETCHECK, BST_UNCHECKED, 0);
+      update();
+      ok = SendMessageW(fidelity, BM_GETCHECK, 0, 0) == BST_CHECKED &&
+           IsWindowEnabled(fidelity) && ok;
+    }
   int nativeDpi = dpi;
   RECT previous;
   GetWindowRect(window, &previous);

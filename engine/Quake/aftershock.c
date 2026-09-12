@@ -65,6 +65,26 @@ cvar_t as_smw_pixel = {"as_smw_pixel", "4", CVAR_ARCHIVE};
 cvar_t as_smw_outline = {"as_smw_outline", "1", CVAR_ARCHIVE};
 cvar_t		  as_layers = {"as_layers", "3", CVAR_ARCHIVE};
 extern cvar_t as_gibs, as_goo;
+// Neon fidelity swaps the whole screen-effects compute pass out for its own
+// (r_passes.c: "if (parms->fidelity) AS_FidelityDraw"), so SMW - which lives in
+// that pass - never runs while fidelity is on. Stash the setting on the way in
+// and hand it back on the way out instead of silently clobbering it. -1 means
+// nothing is stashed, so repeat enables don't overwrite the saved value.
+static float as_smw_stashed_fidelity = -1.0f;
+static void	 AS_SMWChanged (cvar_t *v)
+{
+	if (v->value != 0)
+	{
+		if (as_smw_stashed_fidelity < 0)
+			as_smw_stashed_fidelity = as_fidelity.value;
+		Cvar_SetValueQuick (&as_fidelity, 0);
+	}
+	else if (as_smw_stashed_fidelity >= 0)
+	{
+		Cvar_SetValueQuick (&as_fidelity, as_smw_stashed_fidelity);
+		as_smw_stashed_fidelity = -1.0f;
+	}
+}
 static int	  AS_StructureMode (void)
 {
 	return isfinite (as_structure.value) ? CLAMP (0, (int)as_structure.value, 11) : 10;
@@ -2170,6 +2190,7 @@ void AS_Init (void)
     Cvar_RegisterVariable(&as_neon_prism);Cvar_RegisterVariable(&as_reflection_strength);
     Cvar_RegisterVariable(&as_reflection_roughness);Cvar_RegisterVariable(&as_neon_glow);
     Cvar_RegisterVariable(&as_smw);Cvar_RegisterVariable(&as_smw_pixel);Cvar_RegisterVariable(&as_smw_outline);
+    Cvar_SetCallback(&as_smw,AS_SMWChanged);
     Cmd_AddCommand("neon_prism",AS_NeonPrism_f);
 	Cvar_RegisterVariable (&as_radius);
 	Cvar_RegisterVariable (&as_damage);
