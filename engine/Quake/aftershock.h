@@ -17,7 +17,7 @@ int AS_ShowcaseTick(void);
 void AS_NailRipple(float output[4]);
 extern cvar_t as_fidelity, as_reflections, as_nails;
 extern cvar_t as_neon_prism, as_reflection_strength, as_reflection_roughness, as_neon_glow;
-extern cvar_t as_smw, as_smw_pixel, as_smw_outline;
+extern cvar_t as_smw, as_smw_pixel, as_smw_outline, as_smw_edge, as_smw_saturate;
 void AS_NailTrail(entity_t *ent, const vec3_t previous, int entity);
 void AS_NailImpact(const vec3_t position, qboolean super);
 void AS_NailScar(const vec3_t position, const vec3_t normal, int entity, float radius);

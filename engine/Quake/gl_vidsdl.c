@@ -3404,6 +3404,8 @@ task_handle_t GL_EndRendering (qboolean use_tasks, qboolean swapchain)
         .smw = as_smw.value != 0,
         .smw_pixel = (uint32_t)CLAMP (1, (int)as_smw_pixel.value, 16),
         .smw_outline = (uint32_t)CLAMP (0, (int)as_smw_outline.value, 3),
+        .smw_edge = (float)CLAMP (0.0, (double)as_smw_edge.value, 1.0),
+        .smw_saturate = (float)CLAMP (0.0, (double)as_smw_saturate.value, 3.0),
 		.vid_palettize = vid_palettize.value != 0,
 		.polyblend = gl_polyblend.value != 0,
 		.menu = key_dest == key_menu,

@@ -624,6 +624,15 @@ void buildPages() {
          L"fills meet. 0 removes the borders. Only affects Super Mario World "
          L"mode.",
          true);
+  number(2, L"SMW edge threshold", L"as_smw_edge", L"0.10", 0, 1,
+         L"How different two neighbouring cells must look before a black border "
+         L"is drawn between them. Lower values outline more detail; very low "
+         L"values outline nearly every cell. 0 removes the borders entirely.");
+  number(2, L"SMW saturation", L"as_smw_saturate", L"1.30", 0, 3,
+         L"Colour punch for Super Mario World mode. 1 keeps the scene's own "
+         L"colours, higher values push toward cartoon vibrancy, 0 is greyscale. "
+         L"This grades the full 32,768-colour gamut rather than snapping to a "
+         L"fixed palette.");
   cb(density, 2, L"Surface density",
      L"Play favors speed. Fine balances detail and cost. Showcase draws a "
      L"denser field and uses more GPU time. Holo Physics has a separate "

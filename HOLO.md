@@ -43,9 +43,11 @@ no `SV_TraceLine`, no RNG, no QuakeC).
 | `as_neon_glow` | `1` | 0–2 | Luminous halo/glow intensity. |
 | `as_layers` | `3` | 1–4 | Independently jittered depth layers of surface particles. |
 | `as_nails` | `1` | boolean | Cosmetic nail-impact ricochets/scars (visual only). |
-| `as_smw` | `0` | boolean | Super Mario World "World 1" post-process: 15-bit (32,768 colour) quantisation, chunky pixel cells, flat Yoshi's Island palette fills and hard black tile borders. Works over either renderer. |
+| `as_smw` | `0` | boolean | Super Mario World post-process: chunky pixel cells, 15-bit (32,768 colour) quantisation and hard black tile borders on real edges. Keeps the full gamut - it grades colour rather than snapping to a fixed palette. Works over either renderer. |
 | `as_smw_pixel` | `4` | 1–16 | Pixel cell size for `as_smw`, in screen pixels. Larger = chunkier. |
 | `as_smw_outline` | `1` | 0–3 | Black tile-border thickness for `as_smw`, in screen pixels. 0 disables borders. |
+| `as_smw_edge` | `0.10` | 0–1 | How different two neighbouring cells must look before a black border is drawn. Lower outlines more detail; 0 disables borders. |
+| `as_smw_saturate` | `1.30` | 0–3 | Colour punch for `as_smw`. 1 keeps the scene's own colours, 0 is greyscale, higher pushes cartoon vibrancy. |
 | `as_gibs` | `1` | boolean | Directional gib motion/simulation (0 = stock gib rendering). |
 | `as_goo` | `1` | boolean | Surface blood/goo splash decals and slide trails. |
 

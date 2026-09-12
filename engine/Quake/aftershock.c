@@ -63,6 +63,8 @@ cvar_t as_neon_glow = {"as_neon_glow", "1", CVAR_ARCHIVE};
 cvar_t as_smw = {"as_smw", "0", CVAR_ARCHIVE};
 cvar_t as_smw_pixel = {"as_smw_pixel", "4", CVAR_ARCHIVE};
 cvar_t as_smw_outline = {"as_smw_outline", "1", CVAR_ARCHIVE};
+cvar_t as_smw_edge = {"as_smw_edge", "0.10", CVAR_ARCHIVE};
+cvar_t as_smw_saturate = {"as_smw_saturate", "1.30", CVAR_ARCHIVE};
 cvar_t		  as_layers = {"as_layers", "3", CVAR_ARCHIVE};
 extern cvar_t as_gibs, as_goo;
 // Neon fidelity swaps the whole screen-effects compute pass out for its own
@@ -2190,6 +2192,7 @@ void AS_Init (void)
     Cvar_RegisterVariable(&as_neon_prism);Cvar_RegisterVariable(&as_reflection_strength);
     Cvar_RegisterVariable(&as_reflection_roughness);Cvar_RegisterVariable(&as_neon_glow);
     Cvar_RegisterVariable(&as_smw);Cvar_RegisterVariable(&as_smw_pixel);Cvar_RegisterVariable(&as_smw_outline);
+    Cvar_RegisterVariable(&as_smw_edge);Cvar_RegisterVariable(&as_smw_saturate);
     Cvar_SetCallback(&as_smw,AS_SMWChanged);
     Cmd_AddCommand("neon_prism",AS_NeonPrism_f);
 	Cvar_RegisterVariable (&as_radius);
