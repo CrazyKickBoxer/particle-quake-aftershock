@@ -583,6 +583,21 @@ void buildPages() {
       L"Industrial Rust", L"Spectral", L"Frozen Ruins", L"Electric Grid",
       L"Cosmic Dust"},
      0);
+  toggle(2, L"Super Mario World mode", L"as_smw", false,
+         L"Redraws the finished frame in a 16-bit console style: colour "
+         L"quantised to the SNES 32,768-colour gamut, chunky pixel cells, flat "
+         L"Yoshi's Island palette fills and hard black tile borders. This is a "
+         L"post-process, so it works over either renderer and ignores the "
+         L"material palette above.");
+  number(2, L"SMW pixel size", L"as_smw_pixel", L"4", 1, 16,
+         L"Screen pixels per SMW cell. Larger values look chunkier and more "
+         L"like a console tile grid. Only affects Super Mario World mode.",
+         true);
+  number(2, L"SMW outline width", L"as_smw_outline", L"1", 0, 3,
+         L"Thickness in pixels of the black border drawn where two different "
+         L"fills meet. 0 removes the borders. Only affects Super Mario World "
+         L"mode.",
+         true);
   cb(density, 2, L"Surface density",
      L"Play favors speed. Fine balances detail and cost. Showcase draws a "
      L"denser field and uses more GPU time. Holo Physics has a separate "

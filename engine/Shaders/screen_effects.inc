@@ -66,6 +66,41 @@ float blue_noise (ivec2 u)
 #define SCREEN_EFFECT_FLAG_WATER_WARP 0x4
 #define SCREEN_EFFECT_FLAG_PALETTIZE  0x8
 #define SCREEN_EFFECT_FLAG_MENU		  0x10
+// 0x20 is the Neon glow pass. Bits 8-11 carry the SMW cell size minus one and
+// bits 12-13 its outline width, so no extra push constants are needed.
+#define SCREEN_EFFECT_FLAG_SMW 0x40
+
+// Super Mario World "World 1" styling. Colour is quantised to the SNES 15-bit
+// gamut (32 x 32 x 32 = 32768 colours), collapsed onto flat Yoshi's Island
+// ramps, and snapped to chunky cells so neighbouring cells can be compared for
+// tile borders. Every lookup goes through here so the border test and the fill
+// can never disagree.
+vec3 smw_fill (ivec2 at, int cell_size)
+{
+	const ivec2 cell = ((at / cell_size) * cell_size) + (cell_size / 2);
+	vec3		src = texelFetch (input_tex, clamp (cell, ivec2 (0), ivec2 (push_constants.clamp_size)), 0).rgb;
+	src = clamp (src, vec3 (0.0f), vec3 (1.0f));
+	src = floor (src * 31.0f + 0.5f) / 31.0f;
+
+	const float luma = dot (src, vec3 (0.299f, 0.587f, 0.114f));
+	const float sat = max (src.r, max (src.g, src.b)) - min (src.r, min (src.g, src.b));
+
+	const vec3 sky[4] = vec3[] (
+		vec3 (0.29f, 0.54f, 0.97f), vec3 (0.47f, 0.69f, 0.98f), vec3 (0.67f, 0.83f, 1.00f), vec3 (0.97f, 0.97f, 0.97f));
+	const vec3 grass[4] = vec3[] (
+		vec3 (0.00f, 0.34f, 0.05f), vec3 (0.00f, 0.58f, 0.03f), vec3 (0.22f, 0.83f, 0.09f), vec3 (0.55f, 0.94f, 0.30f));
+	const vec3 dirt[4] = vec3[] (
+		vec3 (0.27f, 0.13f, 0.05f), vec3 (0.53f, 0.28f, 0.11f), vec3 (0.82f, 0.55f, 0.25f), vec3 (0.95f, 0.76f, 0.45f));
+
+	const int band = luma < 0.18f ? 0 : luma < 0.42f ? 1 : luma < 0.72f ? 2 : 3;
+	// Blue-dominant, or bright and washed out, reads as the backdrop rather
+	// than as geometry - that catches most of Quake's sky without a sky mask.
+	if ((src.b > src.r && src.b >= src.g) || (luma > 0.66f && sat < 0.12f))
+		return sky[band];
+	if (src.g > src.r && src.g > src.b)
+		return grass[band];
+	return dirt[band];
+}
 
 #if defined(SCALING)
 // Vulkan guarantees 16384 bytes of shared memory, so host doesn't need to check
@@ -325,6 +360,28 @@ void main ()
         float vignette=1.-.20*pow(clamp(dot(position,position)*.5,0.,1.),2.);
         color.rgb=(color.rgb+glow*1.8)*vignette;
     }
+	[[branch]] if ((push_constants.flags & SCREEN_EFFECT_FLAG_SMW) != 0)
+	{
+		const int	cell_size = int (((push_constants.flags >> 8) & 0xF) + 1);
+		const int	outline = int ((push_constants.flags >> 12) & 0x3);
+		const ivec2 at = ivec2 (pos_x, pos_y);
+		const vec3	fill = smw_fill (at, cell_size);
+		const ivec2 in_cell = at - ((at / cell_size) * cell_size);
+
+		// Each cell draws its border on the sides that abut a different fill, so
+		// the black outline lands between colour regions the way SMW tiles do
+		// instead of ringing every cell.
+		bool edge = false;
+		[[flatten]] if (outline > 0)
+		{
+			edge = edge || (in_cell.x < outline && any (notEqual (smw_fill (at - ivec2 (cell_size, 0), cell_size), fill)));
+			edge = edge || (in_cell.x >= cell_size - outline && any (notEqual (smw_fill (at + ivec2 (cell_size, 0), cell_size), fill)));
+			edge = edge || (in_cell.y < outline && any (notEqual (smw_fill (at - ivec2 (0, cell_size), cell_size), fill)));
+			edge = edge || (in_cell.y >= cell_size - outline && any (notEqual (smw_fill (at + ivec2 (0, cell_size), cell_size), fill)));
+		}
+		color.rgb = edge ? vec3 (0.0f) : fill;
+	}
+
 	color.rgb = mix (color.rgb, vec3 (push_constants.poly_blend_r, push_constants.poly_blend_g, push_constants.poly_blend_b), push_constants.poly_blend_a);
 	[[branch]] if ((push_constants.flags & SCREEN_EFFECT_FLAG_MENU) != 0)
 		color.rgb = mix (color.rgb, vec3 (color.r * 0.3f + color.g * 0.59f + color.b * 0.11f), 0.5f) * 0.6f;

@@ -68,6 +68,9 @@ typedef struct end_rendering_parms_s
 	bool         neon : 1;
 	bool fidelity : 1;
 	bool reflections : 1;
+	bool smw : 1;
+	uint32_t smw_pixel : 5;
+	uint32_t smw_outline : 2;
 	bool		 menu		   : 1;
 	bool		 ray_debug	   : 1;
 	uint32_t	 render_scale  : 4;

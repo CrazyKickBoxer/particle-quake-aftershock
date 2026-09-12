@@ -549,6 +549,9 @@ typedef struct ray_debug_constants_s
 #define SCREEN_EFFECT_FLAG_WATER_WARP 0x4
 #define SCREEN_EFFECT_FLAG_PALETTIZE  0x8
 #define SCREEN_EFFECT_FLAG_MENU		  0x10
+// 0x20 is the Neon glow. SMW packs its cell size into bits 8-11 and its
+// outline width into bits 12-13; see screen_effects.inc.
+#define SCREEN_EFFECT_FLAG_SMW		  0x40
 
 /*
 ===============
@@ -640,6 +643,8 @@ static void R_ScreenEffects (cb_context_t *cbx, qboolean enabled, end_rendering_
 				screen_effect_flags |= SCREEN_EFFECT_FLAG_PALETTIZE;
 			if (parms->menu)
 				screen_effect_flags |= SCREEN_EFFECT_FLAG_MENU;
+			if (parms->smw)
+				screen_effect_flags |= SCREEN_EFFECT_FLAG_SMW | ((CLAMP (1u, parms->smw_pixel, 16u) - 1u) << 8) | (CLAMP (0u, parms->smw_outline, 3u) << 12);
 
 			const screen_effect_constants_t push_constants = {
 				parms->vid_width - 1,
@@ -789,7 +794,7 @@ uint32_t R_RecordFrame (
 	const frame_desc_t				*frame = &current_layout.variants[variant];
 	VkCommandBuffer					 command_buffer = vulkan_globals.primary_cb_contexts[PCBX_RENDER_PASSES].cb;
 	const bool						 screen_effects =
-		parms->neon || parms->render_warp || parms->render_scale >= 2 || parms->vid_palettize || (parms->polyblend && parms->v_blend[3]) || parms->menu || parms->ray_debug;
+		parms->neon || parms->smw || parms->render_warp || parms->render_scale >= 2 || parms->vid_palettize || (parms->polyblend && parms->v_blend[3]) || parms->menu || parms->ray_debug;
 	const bool	 msaa = current_layout.samples != VK_SAMPLE_COUNT_1_BIT;
 	VkClearValue clear_values[MAX_PASS_ATTACHMENTS] = {0};
 	clear_values[0] = parms->color_clear_value;
