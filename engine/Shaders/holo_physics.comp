@@ -48,7 +48,7 @@ layout(push_constant) uniform Settings {
 } pc;
 const uint FREE=1u, STUCK=2u, GORE=4u, DEBRIS=8u, DUST=16u, SPARK=32u;
 // Bits 8-10 are the colour slot, 64/128 are core/death, so 2048 is the first free bit.
-const uint BOUNCED=2048u;
+const uint BOUNCED=2048u, SHATTERED=4096u;
 const uint INVALID=0xffffffffu;
 uint inputBase() { return 128u+pc.inputList*pc.budget; }
 uint outputBase() { return 128u+(1u-pc.inputList)*pc.budget; }
@@ -216,6 +216,16 @@ void main() {
     if(pc.dt<=0.0) { appendActive(slot); return; }
     if((p.flags&(GORE|DEBRIS))!=0u) {
         p.freeTimer-=pc.dt;
+        // Two-stage death: the body bursts into a few large shards, then those
+        // shards break up into the full cloud of tiny fragments. This is one
+        // population in two phases rather than shards spawning children here:
+        // popFree() in this pass would race retire() over the free list.
+        if((p.flags&128u)!=0u && (p.flags&SHATTERED)==0u && (p.freeLifetime-p.freeTimer)>=p.freeLifetime*.2) {
+            uint sh=hashId(p.seed^0x9e37u);
+            vec3 kick=vec3(float(hashId(sh)&65535u),float(hashId(sh+1u)&65535u),float(hashId(sh+2u)&65535u))/32767.5-1.;
+            p.velocity=p.velocity*.55+kick*170.;
+            p.flags|=SHATTERED;
+        }
         for(int step=0;step<4;++step) {
             float dt=clamp(pc.dt,0.0,.05)*.25; vec3 previous=p.position;
             p.velocity+=curlWind(p.position)*pc.turbulence*12.*dt;
@@ -405,7 +415,7 @@ void main() {
     Particle p;p.position=world;p.pointId=INVALID;
     p.velocity=(safeNormal(world-center+random*6.)+vec3(0,0,.6))*job.parameters.y;
     if(core) p.velocity=-random*4.;
-    p.freeTimer=job.parameters.z+(core?.35:0.);p.flags=FREE|DEBRIS|128u|(core?64u:0u);
+    p.freeTimer=job.parameters.z+(core?.35:0.);p.flags=FREE|DEBRIS|128u|(core?64u:0u)|(job.info.z!=0u?0u:SHATTERED);
     p.seed=seed;p.freeLifetime=p.freeTimer;p.sourceRef=INVALID;
     particles[slot]=p;appendActive(slot);atomicAdd(words[8],1u);
 #elif HP_PASS == 12

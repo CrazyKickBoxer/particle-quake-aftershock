@@ -67,6 +67,7 @@ cvar_t as_npc_gain = {"as_npc_gain", "0.85", CVAR_ARCHIVE};
 cvar_t as_npc_detail = {"as_npc_detail", "2.5", CVAR_ARCHIVE};
 cvar_t as_npc_solid = {"as_npc_solid", "1", CVAR_ARCHIVE};
 cvar_t as_layer_falloff = {"as_layer_falloff", "1", CVAR_ARCHIVE};
+cvar_t as_gib_shards = {"as_gib_shards", "1", CVAR_ARCHIVE};
 cvar_t as_smw = {"as_smw", "0", CVAR_ARCHIVE};
 cvar_t as_smw_pixel = {"as_smw_pixel", "4", CVAR_ARCHIVE};
 cvar_t as_smw_outline = {"as_smw_outline", "1", CVAR_ARCHIVE};
@@ -2227,6 +2228,7 @@ void AS_Init (void)
     Cvar_RegisterVariable(&as_npc_detail);
     Cvar_RegisterVariable(&as_npc_solid);
     Cvar_RegisterVariable(&as_layer_falloff);
+    Cvar_RegisterVariable(&as_gib_shards);
     Cvar_RegisterVariable(&as_smw);Cvar_RegisterVariable(&as_smw_pixel);Cvar_RegisterVariable(&as_smw_outline);
     Cvar_RegisterVariable(&as_smw_edge);Cvar_RegisterVariable(&as_smw_saturate);
     Cvar_SetCallback(&as_smw,AS_SMWChanged);

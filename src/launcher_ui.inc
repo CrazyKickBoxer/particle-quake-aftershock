@@ -740,6 +740,12 @@ void buildPages() {
          L"decals are unchanged; only the chunky mesh is dropped. The outward "
          L"burst needs Holo Physics, and how much the particles bounce is set "
          L"by Particle restitution.");
+  toggle(4, L"Two-stage shatter", L"as_gib_shards", true,
+         L"A killed enemy bursts into a handful of large shards first, which "
+         L"break apart a moment later into the full cloud of tiny fragments "
+         L"that bounce off walls, ceilings and the floor. Off bursts straight "
+         L"into fragments in one stage. Needs Gibs as particles and Holo "
+         L"Physics; bouncing needs Particle collision.");
   toggle(4, L"Nail ricochets", L"as_nails", true,
          L"Visual sparks, debris and pressure ripples at nail impacts. Does "
          L"not change the real nail trajectory or damage.");

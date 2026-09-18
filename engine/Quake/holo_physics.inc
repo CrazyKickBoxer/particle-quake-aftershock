@@ -623,7 +623,7 @@ qboolean HP_ObserveAlias(entity_t *entity,aliashdr_t *hdr,const float *matrix,fl
     hp_death_job_t snapshot={0};memcpy(snapshot.model,matrix,64);
     snapshot.mesh[0]=pose1;snapshot.mesh[1]=pose2;snapshot.mesh[2]=(uint32_t)hdr->vbostofs/4;snapshot.mesh[3]=hdr->aftershock_offset;
     snapshot.parameters[0]=blend;snapshot.parameters[1]=95*HP_Value(&hp_death,0,8,1);snapshot.parameters[2]=HP_Value(&hp_death_life,.2f,4,1.2f);
-    snapshot.info[0]=hdr->aftershock_samples;snapshot.info[1]=HP_Hash((uint32_t)owner^(uint32_t)(cl.time*1000));
+    snapshot.info[0]=hdr->aftershock_samples;snapshot.info[1]=HP_Hash((uint32_t)owner^(uint32_t)(cl.time*1000));snapshot.info[2]=as_gib_shards.value?1u:0u; /* 0 spawns already-shattered: legacy single-stage burst */
     if(!dead) {
         hp_dead_owners[owner].dead=false;hp_last_alias[owner].job=snapshot;hp_last_alias[owner].mesh=hdr->vertex_buffer;
         hp_last_alias[owner].model=entity->model;hp_last_alias[owner].seen=hp_clock;return false;
