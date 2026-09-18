@@ -480,7 +480,11 @@ void GLMesh_UploadBuffers (
 	uint32_t *as_samples=NULL;int as_count=0,as_capacity=0;
 	/* Splat spacing in Quake units. Lower = denser = more skin detail, at a
 	   quadratic cost in samples. Baked at model load, so it needs a map reload. */
-	const float as_spacing=CLAMP(1.0f,(as_npc_detail.value>0.f?as_npc_detail.value:2.5f),6.0f);
+	/* Monsters only: with as_npc_solid they draw as solid models while alive, so
+	   their samples are spent entirely on the death burst and a finer spacing
+	   costs nothing until something dies. Weapons and pickups still draw as point
+	   clouds every frame, so they keep the original 2.5. */
+	const float as_spacing=AS_IsMonsterModel(mod->name)?CLAMP(1.0f,(as_npc_detail.value>0.f?as_npc_detail.value:2.5f),6.0f):2.5f;
 	if(hdr->poseverttype==PV_QUAKE1){
 		for(int tri=0;tri<numindexes;tri+=3){float longest=0;
 			for(int pose=0;pose<hdr->numposes;++pose)for(int edge=0;edge<3;++edge){const trivertx_t *tv=(const trivertx_t *)vertexes+pose*hdr->numverts;vec3_t delta;int a=desc[indexes[tri+edge]].vertindex,b=desc[indexes[tri+(edge+1)%3]].vertindex;for(int k=0;k<3;++k)delta[k]=(tv[a].v[k]-tv[b].v[k])*hdr->scale[k];longest=q_max(longest,VectorLength(delta));}

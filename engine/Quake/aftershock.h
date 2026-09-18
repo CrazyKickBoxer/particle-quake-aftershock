@@ -25,6 +25,7 @@ void AS_NailScar(const vec3_t position, const vec3_t normal, int entity, float r
 void AS_FidelityPrepare (end_rendering_parms_t *parms);
 void AS_FidelityDraw (cb_context_t *cbx, end_rendering_parms_t *parms);
 qboolean AS_Neon (void);
+qboolean AS_IsMonsterModel (const char *name);
 void		  AS_Init (void);
 void		  AS_ApplyArguments (void);
 void		  AS_NewMap (void);

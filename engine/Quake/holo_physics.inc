@@ -563,7 +563,7 @@ void HP_Run(VkCommandBuffer cb,int frame_index) {
             VkWriteDescriptorSet write={.sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,.dstSet=hp_mesh_sets[frame_index][j],.dstBinding=0,.descriptorCount=1,.descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,.pBufferInfo=&mesh};
             vkUpdateDescriptorSets(vulkan_globals.device,1,&write,0,NULL);
             vkCmdBindDescriptorSets(cb,VK_PIPELINE_BIND_POINT_COMPUTE,hp_death_layout,1,1,&hp_mesh_sets[frame_index][j],0,NULL);
-            p.pad1=(float)j;HP_Dispatch(cb,11,&p,(q_min(hp_death_jobs[j].info[0],hp_capacity/8)+32+63)/64);
+            p.pad1=(float)j;HP_Dispatch(cb,11,&p,(q_min(hp_death_jobs[j].info[0],hp_capacity/4)+32+63)/64);
         }
     }
     HP_Dispatch(cb,4,&p,1);

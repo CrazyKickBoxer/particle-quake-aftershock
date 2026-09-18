@@ -223,7 +223,7 @@ void main() {
         if((p.flags&128u)!=0u && (p.flags&SHATTERED)==0u && (p.freeLifetime-p.freeTimer)>=p.freeLifetime*.2) {
             uint sh=hashId(p.seed^0x9e37u);
             vec3 kick=vec3(float(hashId(sh)&65535u),float(hashId(sh+1u)&65535u),float(hashId(sh+2u)&65535u))/32767.5-1.;
-            p.velocity=p.velocity*.55+kick*170.;
+            p.velocity=p.velocity*.42+kick*85.;
             p.flags|=SHATTERED;
         }
         // Substeps exist so a fast particle cannot tunnel through a wall. Within a
@@ -234,7 +234,7 @@ void main() {
         for(int step=0;step<substeps;++step) {
             float dt=clamp(pc.dt,0.0,.05)/float(substeps); vec3 previous=p.position;
             p.velocity+=curlWind(p.position)*pc.turbulence*12.*dt;
-            p.velocity.z-=((p.flags&64u)!=0u?40.:((p.flags&128u)!=0u?430.:800.))*pc.goreGravity*dt;
+            p.velocity.z-=((p.flags&64u)!=0u?40.:((p.flags&128u)!=0u?300.:800.))*pc.goreGravity*dt;
             // Heavy drag (1.8/s) was tuned for particles that died on first contact;
             // it bleeds a bouncing particle out before it can bounce more than once.
             p.velocity*=exp(-((p.flags&128u)!=0u?.7:1.8)*dt);

@@ -78,7 +78,7 @@ typedef struct
    health, QuakeC or any other gameplay state. */
 static const char *as_monster_models[] = {"soldier", "ogre",	 "demon",	"dog",	"knight", "hknight", "wizard",
 									  "shalrath", "shambler", "zombie", "fish", "boss",	  "oldone",	 "enforcer"};
-static qboolean AS_IsMonsterModel (const char *name)
+qboolean AS_IsMonsterModel (const char *name)
 {
 	for (int j = 0; j < countof (as_monster_models); ++j)
 		if (strstr (name, as_monster_models[j]))

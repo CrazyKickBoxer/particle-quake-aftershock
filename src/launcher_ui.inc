@@ -693,7 +693,7 @@ void buildPages() {
          L"from turning to mud, but flatten contrast. Pale skins like the "
          L"shambler and dark ones fail in opposite directions, so tune against "
          L"both. Needs Monster skin colour.");
-  number(3, L"Model point density", L"as_npc_detail", L"2.5", 1, 6,
+  number(3, L"Model point density", L"as_npc_detail", L"1.5", 1, 6,
          L"Spacing in Quake units between the points that make up monsters, "
          L"weapons and pickups. Each point carries one flat skin texel, so "
          L"lower values show more texture detail. Cost is quadratic: halving "
