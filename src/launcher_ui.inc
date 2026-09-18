@@ -665,6 +665,11 @@ void buildPages() {
   number(3, L"Neon glow", L"as_neon_glow", L"1", 0, 2,
          L"Scales the luminous halo. Too much glow can obscure individual "
          L"points.");
+  toggle(3, L"Monster skin colour", L"as_neon_npc_texture", true,
+         L"Tints each monster's points from its own MDL skin, so the point "
+         L"cloud maps the texture instead of drawing one flat magenta "
+         L"silhouette. Requires Neon Cathedral. Weapons and pickups stay cyan "
+         L"either way. Off restores the flat magenta look.");
   cb(mode, 4, L"World mode",
      L"Faithful preserves the normal world. Destruction sandbox enables the "
      L"existing PhysX destruction mode. This is separate from renderer-only "
