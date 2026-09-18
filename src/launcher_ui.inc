@@ -670,6 +670,30 @@ void buildPages() {
          L"cloud maps the texture instead of drawing one flat magenta "
          L"silhouette. Requires Neon Cathedral. Weapons and pickups stay cyan "
          L"either way. Off restores the flat magenta look.");
+  number(3, L"Monster skin brightness", L"as_npc_gain", L"0.85", 0, 4,
+         L"Overall exposure for skin-tinted monster points. This replaces the "
+         L"fidelity brightness boost rather than stacking on it, so it means "
+         L"the same thing whether Enhanced fidelity is on or off. Much above "
+         L"1.3 the brightest skin texels clip to white and the texture detail "
+         L"flattens out. Needs Monster skin colour.");
+  number(3, L"Monster skin saturation", L"as_npc_sat", L"1.6", 0, 4,
+         L"Colour punch for skin-tinted monster points. 1 keeps the skin's own "
+         L"saturation, 0 is greyscale, higher pushes the hue harder against the "
+         L"neon architecture. Needs Monster skin colour.");
+  number(3, L"Monster skin shadow lift", L"as_npc_lift", L"0.85", 0.2, 1,
+         L"Lifts dark areas of a monster skin. 1 is linear and keeps the most "
+         L"light/dark detail; lower values rescue dark skins such as the ogre "
+         L"from turning to mud, but flatten contrast. Pale skins like the "
+         L"shambler and dark ones fail in opposite directions, so tune against "
+         L"both. Needs Monster skin colour.");
+  number(3, L"Model point density", L"as_npc_detail", L"2.5", 1, 6,
+         L"Spacing in Quake units between the points that make up monsters, "
+         L"weapons and pickups. Each point carries one flat skin texel, so "
+         L"lower values show more texture detail. Cost is quadratic: halving "
+         L"this roughly quadruples the points on every model. Applies to all "
+         L"models, not just monsters. A model that exceeds the 250,000 point "
+         L"limit silently falls back to solid triangles and prints a warning, "
+         L"so raise this again if a monster suddenly looks solid.");
   cb(mode, 4, L"World mode",
      L"Faithful preserves the normal world. Destruction sandbox enables the "
      L"existing PhysX destruction mode. This is separate from renderer-only "
