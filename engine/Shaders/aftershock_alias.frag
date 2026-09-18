@@ -4,7 +4,7 @@
 layout(push_constant) uniform PC {mat4 mvp;vec3 fog_color;float fog_density;} pc;
 layout(set=0,binding=0) uniform sampler2D diffuse_tex;
 layout(set=1,binding=0) uniform sampler2D fullbright_tex;
-layout(set=2,binding=0) uniform UBO {mat4 model;vec3 shade;float blend;vec3 light;float alpha;uint flags;} u;
+layout(set=2,binding=0) uniform UBO {mat4 model;vec3 shade;float blend;vec3 light;float alpha;uint flags;uint pose1;uint pose2;uint st;uint samples;float npc_sat;float npc_lift;float npc_gain;} u;
 layout(location=0) in vec2 uv;
 layout(location=1) in vec4 color;
 layout(location=2) in float fog;
@@ -17,15 +17,12 @@ layout(location=0) out vec4 result;
 // dark, so they fail in opposite directions. This is a hue-preserving value
 // curve that lifts dark skins much harder than bright ones, which keeps the
 // light/dark detail inside the skin readable as a point cloud.
-const float NPC_SAT=1.35;   // >1 pushes saturation (the Quake palette is muddy). 1 = off
-const float NPC_LIFT=0.55;  // value-curve exponent. 1 = off, lower lifts dark skins more
-const float NPC_GAIN=1.0;   // overall multiplier
-const float NPC_FB=1.5;     // fullbright texels stay the hottest thing on the monster
+const float NPC_FB=1.5; // fullbright texels stay the hottest thing on the monster
 vec3 as_npc_tint(vec3 s){
     float l=dot(s,vec3(.2126,.7152,.0722));
-    s=max(mix(vec3(l),s,NPC_SAT),vec3(0.));
+    s=max(mix(vec3(l),s,u.npc_sat),vec3(0.));
     float m=max(max(s.r,s.g),max(s.b,.04)); // .04 floor caps the boost at ~4.3x
-    return s*(pow(m,NPC_LIFT-1.)*NPC_GAIN);
+    return s*pow(m,u.npc_lift-1.); // npc_lift 1 = linear, lower lifts dark skins and costs contrast
 }
 void main(){
     vec4 source=texture(diffuse_tex,uv);
@@ -38,12 +35,23 @@ void main(){
         float variance=fidelity?dot(fwidth(corner),fwidth(corner))/12.:0.;
         float core=exp(-r*r*9./(1.+18.*variance))/(1.+18.*variance);
         float coverage=fidelity?1.-smoothstep(1.-length(fwidth(corner))*.5,1.+length(fwidth(corner))*.5,r):1.;
-        // Legacy arm is exactly the old expression: tint == color.rgb.
+        // Legacy arm is exactly the old expression: tint == color.rgb, white .15,
+        // exposure 3 under fidelity and 1 otherwise.
         vec3 tint=color.rgb;
-        if(neon==3u&&(u.flags&0x200u)!=0u)tint*=as_npc_tint(source.rgb)+fb*NPC_FB; // color.rgb is white x lighting here
+        float white=.15,exposure=fidelity?3.:1.;
+        if(neon==3u&&(u.flags&0x200u)!=0u){
+            tint*=as_npc_tint(source.rgb)+fb*NPC_FB; // color.rgb is white x lighting here
+            // The flat magenta survives x1.9 and the fidelity x3 only because two of
+            // its channels are ~0. A balanced skin texel clips to white instead, which
+            // is what flattened the detail - every texel above ~0.2 landed past the
+            // ceiling and came out the same colour. Expose the skin path absolutely so
+            // the gain means the same thing with fidelity on or off.
+            exposure=u.npc_gain;
+            white=.04; // a flat white core washes the saturation back out
+        }
         c=tint*(core+exp(-r*r*3./(1.+6.*variance))/(1.+6.*variance)*.18)*color.a*1.9*coverage;
-        c+=vec3(1)*pow(core,4.)*.15;
-        if(fidelity)c*=3.;
+        c+=vec3(1)*pow(core,4.)*white;
+        c*=exposure;
     }
     float f=clamp(exp(-pc.fog_density*pc.fog_density*fog*fog),0,1);
     result=vec4(mix(pc.fog_color*(neon!=0u?.03:1.),c,f),u.alpha);

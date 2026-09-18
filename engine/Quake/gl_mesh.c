@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // gl_mesh.c: triangle model functions
 
 #include "quakedef.h"
+#include "aftershock.h"
 #include "gl_heap.h"
 
 /*
@@ -477,10 +478,13 @@ void GLMesh_UploadBuffers (
 	/* Fixed triangle/barycentric records reference the existing pose vertices.
 	   No per-frame sample positions or duplicate animation buffers are stored. */
 	uint32_t *as_samples=NULL;int as_count=0,as_capacity=0;
+	/* Splat spacing in Quake units. Lower = denser = more skin detail, at a
+	   quadratic cost in samples. Baked at model load, so it needs a map reload. */
+	const float as_spacing=CLAMP(1.0f,(as_npc_detail.value>0.f?as_npc_detail.value:2.5f),6.0f);
 	if(hdr->poseverttype==PV_QUAKE1){
 		for(int tri=0;tri<numindexes;tri+=3){float longest=0;
 			for(int pose=0;pose<hdr->numposes;++pose)for(int edge=0;edge<3;++edge){const trivertx_t *tv=(const trivertx_t *)vertexes+pose*hdr->numverts;vec3_t delta;int a=desc[indexes[tri+edge]].vertindex,b=desc[indexes[tri+(edge+1)%3]].vertindex;for(int k=0;k<3;++k)delta[k]=(tv[a].v[k]-tv[b].v[k])*hdr->scale[k];longest=q_max(longest,VectorLength(delta));}
-			int n=CLAMP(1,(int)ceilf(longest/2.5f),64);int added=(n+1)*(n+2)/2;
+			int n=CLAMP(1,(int)ceilf(longest/as_spacing),64);int added=(n+1)*(n+2)/2;
 			if(as_count+added>250000){Con_Printf("Aftershock: model sample limit, classic fallback for %s\n",mod->name);as_count=0;break;}
 			if(as_count+added>as_capacity){as_capacity=q_max(as_capacity*2,as_count+added);as_samples=Mem_Realloc(as_samples,as_capacity*16);}
 			for(int y=0;y<=n;++y)for(int x=0;x<=n-y;++x){uint32_t *p=as_samples+as_count++*4;p[0]=indexes[tri];p[1]=indexes[tri+1];p[2]=indexes[tri+2];p[3]=(uint32_t)roundf((float)x/n*4095)|((uint32_t)roundf((float)y/n*4095)<<12)|((uint32_t)n<<24);}

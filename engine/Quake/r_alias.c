@@ -52,9 +52,11 @@ typedef struct
 	float	 entalpha;
 	uint32_t flags;
     uint32_t as_pose1,as_pose2,as_st,as_samples;
+    float as_npc_sat,as_npc_lift,as_npc_gain;
 } aliasubo_t;
-_Static_assert(sizeof(aliasubo_t)==116,"Aftershock alias UBO size");
-_Static_assert(offsetof(aliasubo_t,as_pose1)==100 && offsetof(aliasubo_t,as_pose2)==104 && offsetof(aliasubo_t,as_st)==108 && offsetof(aliasubo_t,as_samples)==112,"Aftershock alias GPU offsets");
+_Static_assert(sizeof(aliasubo_t)==128,"Aftershock alias UBO size");
+_Static_assert(offsetof(aliasubo_t,as_pose1)==100 && offsetof(aliasubo_t,as_pose2)==104 && offsetof(aliasubo_t,as_st)==108 && offsetof(aliasubo_t,as_samples)==112
+    && offsetof(aliasubo_t,as_npc_sat)==116 && offsetof(aliasubo_t,as_npc_lift)==120 && offsetof(aliasubo_t,as_npc_gain)==124,"Aftershock alias GPU offsets");
 
 typedef struct
 {
@@ -159,6 +161,7 @@ static void GL_DrawAliasFrame (
 		ubo->blend_factor = blend;
 		memcpy (ubo->light_color, lightcolor, 3 * sizeof (float));
 		ubo->flags = (fb != NULL) ? 0x1 : 0x0;
+        ubo->as_npc_sat=as_npc_sat.value; ubo->as_npc_lift=as_npc_lift.value; ubo->as_npc_gain=as_npc_gain.value;
         if(alphatest)ubo->flags|=128;
         if(splats && AS_Neon()){
             ubo->flags|=0x10;

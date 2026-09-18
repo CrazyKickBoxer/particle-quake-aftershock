@@ -42,6 +42,10 @@ no `SV_TraceLine`, no RNG, no QuakeC).
 | `as_reflection_roughness` | `0.20` | 0.03–0.7 | Reflection blur/roughness; lower = sharper. |
 | `as_neon_glow` | `1` | 0–2 | Luminous halo/glow intensity. |
 | `as_neon_npc_texture` | `1` | boolean | Tints each monster's points from its own MDL skin instead of one flat magenta silhouette, so the point cloud maps the texture. Requires Neon Cathedral; weapons and pickups stay cyan. |
+| `as_npc_sat` | `1.6` | 0–4 | Saturation push for skin-tinted monster splats. 1 = the skin's own saturation, 0 = greyscale. Needs `as_neon_npc_texture 1`. |
+| `as_npc_lift` | `0.85` | 0.2–1 | Value curve for skin-tinted splats. 1 = linear (maximum contrast); lower lifts dark skins out of mud but flattens light/dark detail. |
+| `as_npc_gain` | `0.85` | 0–4 | Overall exposure for skin-tinted splats, applied *instead of* the fidelity ×3, so it means the same thing with `as_fidelity` on or off. Above ~1.3 bright texels start clipping to white and detail flattens. |
+| `as_npc_detail` | `2.5` | 1–6 | Splat spacing on monsters/models, in Quake units. Lower = denser point cloud = more skin detail, at a **quadratic** cost in samples. Baked at model load, so it needs a map reload. Past the 250k-per-model cap a model silently falls back to classic triangles — watch for `Aftershock: model sample limit` in the console. |
 | `as_layers` | `3` | 1–4 | Independently jittered depth layers of surface particles. |
 | `as_nails` | `1` | boolean | Cosmetic nail-impact ricochets/scars (visual only). |
 | `as_smw` | `0` | boolean | Super Mario World post-process: chunky pixel cells, 15-bit (32,768 colour) quantisation and hard black tile borders on real edges. Keeps the full gamut - it grades colour rather than snapping to a fixed palette. Works over either renderer. |
