@@ -60,6 +60,7 @@ cvar_t as_neon_prism = {"as_neon_prism", "0", CVAR_ARCHIVE};
 cvar_t as_reflection_strength = {"as_reflection_strength", "1", CVAR_ARCHIVE};
 cvar_t as_reflection_roughness = {"as_reflection_roughness", "0.20", CVAR_ARCHIVE};
 cvar_t as_neon_glow = {"as_neon_glow", "1", CVAR_ARCHIVE};
+cvar_t as_neon_npc_texture = {"as_neon_npc_texture", "1", CVAR_ARCHIVE};
 cvar_t as_smw = {"as_smw", "0", CVAR_ARCHIVE};
 cvar_t as_smw_pixel = {"as_smw_pixel", "4", CVAR_ARCHIVE};
 cvar_t as_smw_outline = {"as_smw_outline", "1", CVAR_ARCHIVE};
@@ -2191,6 +2192,7 @@ void AS_Init (void)
 	Cvar_RegisterVariable (&as_reflections);
     Cvar_RegisterVariable(&as_neon_prism);Cvar_RegisterVariable(&as_reflection_strength);
     Cvar_RegisterVariable(&as_reflection_roughness);Cvar_RegisterVariable(&as_neon_glow);
+    Cvar_RegisterVariable(&as_neon_npc_texture);
     Cvar_RegisterVariable(&as_smw);Cvar_RegisterVariable(&as_smw_pixel);Cvar_RegisterVariable(&as_smw_outline);
     Cvar_RegisterVariable(&as_smw_edge);Cvar_RegisterVariable(&as_smw_saturate);
     Cvar_SetCallback(&as_smw,AS_SMWChanged);

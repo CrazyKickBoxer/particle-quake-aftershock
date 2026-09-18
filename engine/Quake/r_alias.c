@@ -164,6 +164,7 @@ static void GL_DrawAliasFrame (
             ubo->flags|=0x10;
             if(as_fidelity.value)ubo->flags|=256;
             if(e==&cl.viewent)ubo->flags|=64;
+            if(as_neon_npc_texture.value)ubo->flags|=0x200; // monsters tint from their own MDL skin
             const char *monsters[]={"soldier","ogre","demon","dog","knight","hknight","wizard","shalrath","shambler","zombie","fish","boss","oldone","enforcer"};
             for(int j=0;j<countof(monsters);++j)if(strstr(e->model->name,monsters[j])){ubo->flags|=0x20;break;}
         }
