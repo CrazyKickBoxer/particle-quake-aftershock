@@ -66,6 +66,7 @@ cvar_t as_npc_lift = {"as_npc_lift", "0.85", CVAR_ARCHIVE};
 cvar_t as_npc_gain = {"as_npc_gain", "0.85", CVAR_ARCHIVE};
 cvar_t as_npc_detail = {"as_npc_detail", "2.5", CVAR_ARCHIVE};
 cvar_t as_npc_solid = {"as_npc_solid", "1", CVAR_ARCHIVE};
+cvar_t as_layer_falloff = {"as_layer_falloff", "1", CVAR_ARCHIVE};
 cvar_t as_smw = {"as_smw", "0", CVAR_ARCHIVE};
 cvar_t as_smw_pixel = {"as_smw_pixel", "4", CVAR_ARCHIVE};
 cvar_t as_smw_outline = {"as_smw_outline", "1", CVAR_ARCHIVE};
@@ -744,7 +745,36 @@ static void AS_DrawStructure (
 		return;
 	qboolean holo=reactive && hp_draw_enabled && (sample_buffer==as_sample_buffer || sample_buffer==as_scatter_buffer);
     R_BindPipeline (cbx, VK_PIPELINE_BIND_POINT_GRAPHICS, holo?vulkan_globals.holo_structure[cbx->pipeline_variant][full]:vulkan_globals.aftershock_structure[cbx->pipeline_variant][full]);
-	for (int layer = 0; layer < (scale < 0 ? 1 : q_max (1, CLAMP (1, (int)as_layers.value, 4) - (as_fidelity.value ? 0 : (int)detail))); ++layer)
+	/* The nearest flash is a function of source->origin alone, so it is the same
+	   for every layer of this surface. Searching all 32 effect slots once per
+	   layer repeated identical work on the hottest loop in the renderer. */
+	vec3_t nearest_flash = {0, 0, 0};
+	float  nearest_age = -1;
+	if (mode == 11 && as_fidelity.value && !as_reduced_flashes.value)
+	{
+		float best = FLT_MAX;
+		for (int i = 0; i < as_fx_count; ++i)
+		{
+			float age = (float)(cl.time - as_fx[i].born);
+			if (as_fx[i].strength < 1 || age < 0 || age > 1.3f)
+				continue;
+			vec3_t delta;
+			VectorSubtract (source->origin, as_fx[i].origin, delta);
+			float distance = DotProduct (delta, delta);
+			if (distance < best)
+			{
+				best = distance;
+				VectorCopy (as_fx[i].origin, nearest_flash);
+				nearest_age = age;
+			}
+		}
+	}
+	/* Layer count is the single biggest cost in this renderer: 3 layers instead of
+	   1 costs about 40% of the frame. Fidelity was discarding the distance term
+	   entirely, so every surface drew every layer at any range. as_layer_falloff 0
+	   restores that. */
+	int as_layer_detail = (as_fidelity.value && !as_layer_falloff.value) ? 0 : (int)detail;
+	for (int layer = 0; layer < (scale < 0 ? 1 : q_max (1, CLAMP (1, (int)as_layers.value, 4) - as_layer_detail)); ++layer)
 	{
 		if (!counts[layer])
 			continue;
@@ -755,14 +785,7 @@ static void AS_DrawStructure (
         m->wave[3]=-1;
         m->accent[3]=as_neon_prism.value!=0?1.f:0.f;
         if(mode==11 && as_fidelity.value) {
-            float best=FLT_MAX;
-            for(int i=0;i<as_fx_count;++i) {
-                float age=(float)(cl.time-as_fx[i].born);
-                if(as_fx[i].strength<1 || age<0 || age>1.3f || as_reduced_flashes.value) continue;
-                vec3_t delta; VectorSubtract(source->origin,as_fx[i].origin,delta);
-                float distance=DotProduct(delta,delta);
-                if(distance<best) { best=distance; VectorCopy(as_fx[i].origin,m->wave); m->wave[3]=age; }
-            }
+            VectorCopy(nearest_flash,m->wave); m->wave[3]=nearest_age;
             m->accent[0]=as_reduced_flashes.value?0:heat;
         }
 		m->surface = *source;
@@ -2203,6 +2226,7 @@ void AS_Init (void)
     Cvar_RegisterVariable(&as_npc_gain);
     Cvar_RegisterVariable(&as_npc_detail);
     Cvar_RegisterVariable(&as_npc_solid);
+    Cvar_RegisterVariable(&as_layer_falloff);
     Cvar_RegisterVariable(&as_smw);Cvar_RegisterVariable(&as_smw_pixel);Cvar_RegisterVariable(&as_smw_outline);
     Cvar_RegisterVariable(&as_smw_edge);Cvar_RegisterVariable(&as_smw_saturate);
     Cvar_SetCallback(&as_smw,AS_SMWChanged);

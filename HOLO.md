@@ -47,7 +47,8 @@ no `SV_TraceLine`, no RNG, no QuakeC).
 | `as_npc_lift` | `0.85` | 0.2–1 | Value curve for skin-tinted splats. 1 = linear (maximum contrast); lower lifts dark skins out of mud but flattens light/dark detail. |
 | `as_npc_gain` | `0.85` | 0–4 | Overall exposure for skin-tinted splats, applied *instead of* the fidelity ×3, so it means the same thing with `as_fidelity` on or off. Above ~1.3 bright texels start clipping to white and detail flattens. |
 | `as_npc_detail` | `2.5` | 1–6 | Splat spacing on monsters/models, in Quake units. Lower = denser point cloud = more skin detail, at a **quadratic** cost in samples. Baked at model load, so it needs a map reload. Past the 250k-per-model cap a model silently falls back to classic triangles — watch for `Aftershock: model sample limit` in the console. |
-| `as_layers` | `3` | 1–4 | Independently jittered depth layers of surface particles. |
+| `as_layers` | `3` | 1–4 | Independently jittered depth layers of surface particles. **The single biggest performance setting in the renderer.** Measured on demo1 at 1280x720: 3 layers 87.8 fps, 2 layers 107.8 fps, 1 layer 139.4 fps. |
+| `as_layer_falloff` | `1` | boolean | Lets distant surfaces drop particle layers while `as_fidelity` is on. Fidelity previously discarded the distance term outright, so every surface drew every layer at any range. Helps on maps with long sightlines; measured no change on corridor-heavy demo1. 0 restores the old behaviour. |
 | `as_nails` | `1` | boolean | Cosmetic nail-impact ricochets/scars (visual only). |
 | `as_smw` | `0` | boolean | Super Mario World post-process: chunky pixel cells, 15-bit (32,768 colour) quantisation and hard black tile borders on real edges. Keeps the full gamut - it grades colour rather than snapping to a fixed palette. Works over either renderer. |
 | `as_smw_pixel` | `4` | 1–16 | Pixel cell size for `as_smw`, in screen pixels. Larger = chunkier. |
