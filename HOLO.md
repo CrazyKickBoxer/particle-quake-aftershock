@@ -109,7 +109,7 @@ Disabled in the UI when `as_structure` is 11 (Neon Cathedral), which uses its ow
 |---|---|---|---|
 | `r_holo` | `0` | boolean | On/off alias for the particle renderer (mirrors `as_renderer`). |
 | `r_holo_physics` | `0` | boolean | Master enable for the disturbance layer. Requires `as_renderer 1`. |
-| `r_holo_phys_budget` | `65536` | 1024–262144 | Max active/displaced points. Rebuilds GPU resources when changed. |
+| `r_holo_phys_budget` | `65536` | 1024–262144 | Max active/displaced points, and the per-frame dispatch size for the whole system. Raising it costs FPS even with nothing happening: 131072 measured 73.8 fps against 87.7 at the default. A single death burst is capped at a quarter of this. Rebuilds GPU resources when changed. |
 | `r_holo_phys_settle` | `1.2` | 0.1–5 | Spring-return/settle time (seconds). |
 | `r_holo_phys_blast` | `1` | 0–8 | Outward shockwave force from explosions. |
 | `r_holo_phys_blast_radius` | `1` | 0.1–4 | Visual blast-disturbance radius scale. |
@@ -135,7 +135,7 @@ Disabled in the UI when `as_structure` is 11 (Neon Cathedral), which uses its ow
 | `r_holo_phys_gore_life` | `45` | 1–90 | Seconds stuck blood remains visible while fading. |
 | `r_holo_phys_gore_gravity` | `1` | 0–4 | Gravity multiplier on detached blood points. |
 | `r_holo_phys_death` | `1.6` | 0–8 | Outward speed of the particle burst a monster comes apart into when killed. |
-| `r_holo_phys_death_life` | `3` | 0.2–4 | Seconds death particles live. They retire early once they settle, so this is an upper bound, not a fixed duration. |
+| `r_holo_phys_death_life` | `4.5` | 0.2–8 | Seconds death particles live. They retire early once they settle, so this is an upper bound, not a fixed duration. |
 
 ### Holo Physics presets
 

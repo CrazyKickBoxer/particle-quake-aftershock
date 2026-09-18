@@ -83,7 +83,7 @@ static VkPipelineLayout hp_compute_layout,hp_death_layout;
 static VkDescriptorSetLayout hp_mesh_layout;
 static VkDescriptorSet hp_mesh_sets[2][32];
 static cvar_t hp_death={"r_holo_phys_death","1.6",CVAR_ARCHIVE};
-static cvar_t hp_death_life={"r_holo_phys_death_life","3",CVAR_ARCHIVE};
+static cvar_t hp_death_life={"r_holo_phys_death_life","4.5",CVAR_ARCHIVE};
 typedef struct { float model[16];uint32_t mesh[4];float parameters[4];uint32_t info[4]; } hp_death_job_t;
 _Static_assert(sizeof(hp_death_job_t)==112,"Holo death metadata stride");
 static hp_death_job_t hp_death_jobs[32];
@@ -496,9 +496,9 @@ void HP_Run(VkCommandBuffer cb,int frame_index) {
     if(deaths) {
         for(uint32_t i=0;i<deaths;++i) { hp_impulse_t e={0};VectorCopy(hp_death_jobs[i].model+12,e.origin);e.type=HP_DEATH;e.duration=hp_death_jobs[i].parameters[2];HP_TrackBounds(&e); }
         if(hp_debug.value) Con_Printf("Holo GPU death snapshots: %u\n",deaths);
-        hp_awake_until=hp_clock+HP_Value(&hp_death_life,.2f,4,1.2f)+5;
+        hp_awake_until=hp_clock+HP_Value(&hp_death_life,.2f,8,4.5f)+5;
         hp_gore_until=hp_clock+94;
-        hp_light_until=hp_clock+HP_Value(&hp_death_life,.2f,4,1.2f)*1.25f;
+        hp_light_until=hp_clock+HP_Value(&hp_death_life,.2f,8,4.5f)*1.25f;
     }
     if(hp_read_ready[frame_index]) {
         uint32_t *stats=hp_read_words[frame_index]; hp_active_count=stats[stats[10]&1u];hp_overflow_count=stats[3];hp_stuck_count=stats[21];hp_evictions=stats[7];
@@ -622,7 +622,7 @@ qboolean HP_ObserveAlias(entity_t *entity,aliashdr_t *hdr,const float *matrix,fl
     if(hp_dead_owners[owner].model!=entity->model) { hp_dead_owners[owner].model=entity->model;hp_dead_owners[owner].dead=false; }
     hp_death_job_t snapshot={0};memcpy(snapshot.model,matrix,64);
     snapshot.mesh[0]=pose1;snapshot.mesh[1]=pose2;snapshot.mesh[2]=(uint32_t)hdr->vbostofs/4;snapshot.mesh[3]=hdr->aftershock_offset;
-    snapshot.parameters[0]=blend;snapshot.parameters[1]=95*HP_Value(&hp_death,0,8,1);snapshot.parameters[2]=HP_Value(&hp_death_life,.2f,4,1.2f);
+    snapshot.parameters[0]=blend;snapshot.parameters[1]=95*HP_Value(&hp_death,0,8,1);snapshot.parameters[2]=HP_Value(&hp_death_life,.2f,8,4.5f);
     snapshot.info[0]=hdr->aftershock_samples;snapshot.info[1]=HP_Hash((uint32_t)owner^(uint32_t)(cl.time*1000));snapshot.info[2]=as_gib_shards.value?1u:0u; /* 0 spawns already-shattered: legacy single-stage burst */
     if(!dead) {
         hp_dead_owners[owner].dead=false;hp_last_alias[owner].job=snapshot;hp_last_alias[owner].mesh=hdr->vertex_buffer;

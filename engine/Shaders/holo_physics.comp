@@ -226,10 +226,15 @@ void main() {
             p.velocity=p.velocity*.55+kick*170.;
             p.flags|=SHATTERED;
         }
-        for(int step=0;step<4;++step) {
-            float dt=clamp(pc.dt,0.0,.05)*.25; vec3 previous=p.position;
+        // Substeps exist so a fast particle cannot tunnel through a wall. Within a
+        // bounce or two most of the cloud is slow, and a slow particle does not need
+        // four collision probes a frame to stay honest.
+        float speed2=dot(p.velocity,p.velocity);
+        int substeps=speed2>160000.?4:(speed2>14400.?2:1);
+        for(int step=0;step<substeps;++step) {
+            float dt=clamp(pc.dt,0.0,.05)/float(substeps); vec3 previous=p.position;
             p.velocity+=curlWind(p.position)*pc.turbulence*12.*dt;
-            p.velocity.z-=((p.flags&64u)!=0u?40.:800.)*pc.goreGravity*dt;
+            p.velocity.z-=((p.flags&64u)!=0u?40.:((p.flags&128u)!=0u?430.:800.))*pc.goreGravity*dt;
             // Heavy drag (1.8/s) was tuned for particles that died on first contact;
             // it bleeds a bouncing particle out before it can bounce more than once.
             p.velocity*=exp(-((p.flags&128u)!=0u?.7:1.8)*dt);
@@ -393,7 +398,7 @@ void main() {
     particles[slot]=p;appendActive(slot);atomicAdd(words[8],1u);
 #elif HP_PASS == 11
     DeathJob job=deathJobs[uint(pc.pad1)];
-    uint count=min(job.info.x,pc.budget/8u);
+    uint count=min(job.info.x,pc.budget/4u);
     vec3 eye=vec3(uintBitsToFloat(words[24]),uintBitsToFloat(words[25]),uintBitsToFloat(words[26]));
     float lod=clamp(384./max(384.,distance(job.model[3].xyz,eye)),.1,1.);
     count=max(1u,uint(float(count)*lod*lod));

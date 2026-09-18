@@ -33,5 +33,10 @@ void main() {
     float radius=pc.mode==0u?(shard?2.2+float(p.seed&255u)/255.*1.4:.5): .65+float(p.seed&255u)/255.*1.1;
     vec4 clip=pc.mvp*vec4(p.position,1);
     vec2 projection=vec2(length(vec3(pc.mvp[0][0],pc.mvp[1][0],pc.mvp[2][0])),length(vec3(pc.mvp[0][1],pc.mvp[1][1],pc.mvp[2][1])));
-    clip.xy+=corner*max(vec2(radius)*projection,vec2(clip.w*.0007));gl_Position=clip;
+    // The minimum-size floor has to carry the same aspect ratio as `projection`,
+    // or a particle small enough to hit it gets an equal clip-space offset on both
+    // axes, which is ~1.8x wider than tall at 16:9. Small particles looked like
+    // stretched blobs rather than dots for exactly that reason.
+    vec2 floorSize=vec2(clip.w*.0007)*vec2(projection.x/max(projection.y,1e-6),1.);
+    clip.xy+=corner*max(vec2(radius)*projection,floorSize);gl_Position=clip;
 }

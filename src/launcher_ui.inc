@@ -804,7 +804,7 @@ void buildPages() {
   number(6, L"Death dissolution", L"r_holo_phys_death", L"1.6", 0, 8,
          L"Strength of cosmetic monster point-cloud dissolution. Zero disables "
          L"this effect; entity lifetime is unchanged.");
-  number(6, L"Death effect lifetime", L"r_holo_phys_death_life", L"3", 0.2, 4,
+  number(6, L"Death effect lifetime", L"r_holo_phys_death_life", L"4.5", 0.2, 8,
          L"Seconds for the detached death effect and fading core.");
   number(7, L"Projectile wake", L"r_holo_phys_wake", L"0.7", 0, 4,
          L"Pushes points sideways around fast projectiles and gibs. Zero "
