@@ -41,7 +41,13 @@ void main(){
         vec2 projection=vec2(length(vec3(pc.mvp[0][0],pc.mvp[1][0],pc.mvp[2][0])),length(vec3(pc.mvp[0][1],pc.mvp[1][1],pc.mvp[2][1])));
         gl_Position.xy+=corner*max(projection*radius,vec2(gl_Position.w*.0011));
         fog=gl_Position.w;particle_corner=corner;
-        color=vec4(neon==3u?vec3(1.,.015,.42):vec3(.015,.68,1.),.6+float(h&255u)/255.);
+        // Bit 0x200 = as_neon_npc_texture. A white base turns every later
+        // multiply on color.rgb (the rim term below) into a pure lighting
+        // factor, which the fragment shader applies to the skin texel. That
+        // keeps rim lighting working with no new varying. Flag clear = the
+        // original constants, unchanged.
+        bool npc_tex=neon==3u&&(u.flags&0x200u)!=0u;
+        color=vec4(npc_tex?vec3(1.):(neon==3u?vec3(1.,.015,.42):vec3(.015,.68,1.)),.6+float(h&255u)/255.);
         if((u.flags&256u)!=0u){
             vec3 worldNormal=normalize(transpose(inverse(mat3(u.model)))*mix(n1,n2,u.blend));
             // Camera position follows from the homogeneous inverse projection.
