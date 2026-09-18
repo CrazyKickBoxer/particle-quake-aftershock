@@ -118,7 +118,7 @@ Disabled in the UI when `as_structure` is 11 (Neon Cathedral), which uses its ow
 | `r_holo_phys_spray` | `1` | 0–8 | Strength of bullet/spike impact sprays. |
 | `r_holo_phys_spray_count` | `96` | 0–200 | Max points per small impact spray. |
 | `r_holo_phys_collide` | `1` | boolean | Free-particle collision against the static-world hash grid. |
-| `r_holo_phys_restitution` | `0.25` | 0–1 | Bounce restitution for colliding particles, including gib/gore/death particles. 0 makes a particle settle where it first hits, which is how gore behaved before. |
+| `r_holo_phys_restitution` | `0.45` | 0–1 | Bounce restitution for colliding particles, including gib/gore/death particles. 0 makes a particle settle where it first hits, which is how gore behaved before. |
 | `r_holo_phys_beam` | `1` | 0–8 | Disturbance strength around lightning/beam effects. |
 | `r_holo_phys_beam_radius` | `24` | 4–128 | Beam disturbance radius (Quake units). |
 | `r_holo_phys_wake` | `0.7` | 0–4 | Sideways parting-wake from projectiles/gibs. |
@@ -132,8 +132,8 @@ Disabled in the UI when `as_structure` is 11 (Neon Cathedral), which uses its ow
 | `r_holo_phys_gore_max` | `20000` | 0–65536 | Max persistent/stuck gore points. |
 | `r_holo_phys_gore_life` | `45` | 1–90 | Seconds stuck blood remains visible while fading. |
 | `r_holo_phys_gore_gravity` | `1` | 0–4 | Gravity multiplier on detached blood points. |
-| `r_holo_phys_death` | `1` | 0–8 | Cosmetic monster point-cloud dissolution on death. |
-| `r_holo_phys_death_life` | `1.2` | 0.2–4 | Seconds the death dissolution effect persists. |
+| `r_holo_phys_death` | `1.6` | 0–8 | Outward speed of the particle burst a monster comes apart into when killed. |
+| `r_holo_phys_death_life` | `3` | 0.2–4 | Seconds death particles live. They retire early once they settle, so this is an upper bound, not a fixed duration. |
 
 ### Holo Physics presets
 

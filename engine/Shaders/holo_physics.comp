@@ -219,7 +219,10 @@ void main() {
         for(int step=0;step<4;++step) {
             float dt=clamp(pc.dt,0.0,.05)*.25; vec3 previous=p.position;
             p.velocity+=curlWind(p.position)*pc.turbulence*12.*dt;
-            p.velocity.z-=((p.flags&64u)!=0u?40.:800.)*pc.goreGravity*dt;p.velocity*=exp(-1.8*dt);
+            p.velocity.z-=((p.flags&64u)!=0u?40.:800.)*pc.goreGravity*dt;
+            // Heavy drag (1.8/s) was tuned for particles that died on first contact;
+            // it bleeds a bouncing particle out before it can bounce more than once.
+            p.velocity*=exp(-((p.flags&128u)!=0u?.7:1.8)*dt);
             if((p.flags&64u)!=0u) p.velocity*=exp(-12.0*dt);
             p.position+=p.velocity*dt;
             if(collideSurface(previous,p.position,p.velocity)) {
@@ -234,7 +237,7 @@ void main() {
                     uint dest=atomicAdd(words[13],1u)%pc.goreCap;stains[dest]=stain;
                 }
                 p.flags|=BOUNCED;
-                if(dot(p.velocity,p.velocity)<400.0) { retire(p,slot);return; }
+                if(dot(p.velocity,p.velocity)<225.0) { retire(p,slot);return; }
             }
         }
         if(p.freeTimer<=0.0) retire(p,slot);else { particles[slot]=p;appendActive(slot); }

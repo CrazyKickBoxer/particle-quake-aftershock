@@ -774,7 +774,7 @@ void buildPages() {
   toggle(5, L"Particle collision", L"r_holo_phys_collide", true,
          L"Free particles collide with the renderer's coarse static world "
          L"volume. Moving doors and lifts are not represented by this volume.");
-  number(5, L"Bounce restitution", L"r_holo_phys_restitution", L"0.25", 0, 1,
+  number(5, L"Bounce restitution", L"r_holo_phys_restitution", L"0.45", 0, 1,
          L"Amount of speed retained after a particle bounce. 0 is dead, 1 is "
          L"fully elastic.");
   ck(gibs, 6, L"Directional gibs",
@@ -795,10 +795,10 @@ void buildPages() {
   number(6, L"Gore gravity", L"r_holo_phys_gore_gravity", L"1", 0, 4,
          L"Gravity multiplier for detached blood points. Larger values pull "
          L"them down faster.");
-  number(6, L"Death dissolution", L"r_holo_phys_death", L"1", 0, 8,
+  number(6, L"Death dissolution", L"r_holo_phys_death", L"1.6", 0, 8,
          L"Strength of cosmetic monster point-cloud dissolution. Zero disables "
          L"this effect; entity lifetime is unchanged.");
-  number(6, L"Death effect lifetime", L"r_holo_phys_death_life", L"1.2", 0.2, 4,
+  number(6, L"Death effect lifetime", L"r_holo_phys_death_life", L"3", 0.2, 4,
          L"Seconds for the detached death effect and fading core.");
   number(7, L"Projectile wake", L"r_holo_phys_wake", L"0.7", 0, 4,
          L"Pushes points sideways around fast projectiles and gibs. Zero "
