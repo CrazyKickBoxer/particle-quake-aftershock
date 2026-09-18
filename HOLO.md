@@ -55,6 +55,7 @@ no `SV_TraceLine`, no RNG, no QuakeC).
 | `as_smw_edge` | `0.10` | 0–1 | How different two neighbouring cells must look before a black border is drawn. Lower outlines more detail; 0 disables borders. |
 | `as_smw_saturate` | `1.30` | 0–3 | Colour punch for `as_smw`. 1 keeps the scene's own colours, 0 is greyscale, higher pushes cartoon vibrancy. |
 | `as_gibs` | `1` | boolean | Directional gib motion/simulation (0 = stock gib rendering). |
+| `as_gib_particles` | `1` | boolean | A killed enemy comes apart into physics particles that explode outward, collide with the world and bounce, instead of throwing large gib meshes. The gib bodies still simulate, so blood trails and decals are unchanged; only the chunky mesh is dropped. The burst comes from `r_holo_phys_death`, and bounciness from `r_holo_phys_restitution`. |
 | `as_goo` | `1` | boolean | Surface blood/goo splash decals and slide trails. |
 
 ### `as_style` — 14 material styles (`aftershock.frag`)
@@ -117,7 +118,7 @@ Disabled in the UI when `as_structure` is 11 (Neon Cathedral), which uses its ow
 | `r_holo_phys_spray` | `1` | 0–8 | Strength of bullet/spike impact sprays. |
 | `r_holo_phys_spray_count` | `96` | 0–200 | Max points per small impact spray. |
 | `r_holo_phys_collide` | `1` | boolean | Free-particle collision against the static-world hash grid. |
-| `r_holo_phys_restitution` | `0.25` | 0–1 | Bounce restitution for colliding particles. |
+| `r_holo_phys_restitution` | `0.25` | 0–1 | Bounce restitution for colliding particles, including gib/gore/death particles. 0 makes a particle settle where it first hits, which is how gore behaved before. |
 | `r_holo_phys_beam` | `1` | 0–8 | Disturbance strength around lightning/beam effects. |
 | `r_holo_phys_beam_radius` | `24` | 4–128 | Beam disturbance radius (Quake units). |
 | `r_holo_phys_wake` | `0.7` | 0–4 | Sideways parting-wake from projectiles/gibs. |

@@ -72,7 +72,7 @@ cvar_t as_smw_outline = {"as_smw_outline", "1", CVAR_ARCHIVE};
 cvar_t as_smw_edge = {"as_smw_edge", "0.10", CVAR_ARCHIVE};
 cvar_t as_smw_saturate = {"as_smw_saturate", "1.30", CVAR_ARCHIVE};
 cvar_t		  as_layers = {"as_layers", "3", CVAR_ARCHIVE};
-extern cvar_t as_gibs, as_goo;
+extern cvar_t as_gibs, as_goo, as_gib_particles;
 // Neon fidelity swaps the whole screen-effects compute pass out for its own
 // (r_passes.c: "if (parms->fidelity) AS_FidelityDraw"), so SMW - which lives in
 // that pass - never runs while fidelity is on. Stash the setting on the way in

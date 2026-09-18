@@ -47,6 +47,8 @@ layout(push_constant) uniform Settings {
     float dust; float beamCrawl; float deathEnabled; float shake;
 } pc;
 const uint FREE=1u, STUCK=2u, GORE=4u, DEBRIS=8u, DUST=16u, SPARK=32u;
+// Bits 8-10 are the colour slot, 64/128 are core/death, so 2048 is the first free bit.
+const uint BOUNCED=2048u;
 const uint INVALID=0xffffffffu;
 uint inputBase() { return 128u+pc.inputList*pc.budget; }
 uint outputBase() { return 128u+(1u-pc.inputList)*pc.budget; }
@@ -221,12 +223,18 @@ void main() {
             if((p.flags&64u)!=0u) p.velocity*=exp(-12.0*dt);
             p.position+=p.velocity*dt;
             if(collideSurface(previous,p.position,p.velocity)) {
-                if(pc.goreCap>0u && pc.goreEnabled!=0u && (p.flags&(GORE|128u))!=0u && (p.flags&64u)==0u) {
+                // collideSurface has already reflected the velocity by pc.restitution.
+                // Mark the surface once on the first hit, then let the particle keep
+                // bouncing until it has bled its energy off, instead of dying where it
+                // lands. With r_holo_phys_restitution 0 the reflection is zero, so the
+                // particle settles on contact exactly as it did before.
+                if(pc.goreCap>0u && pc.goreEnabled!=0u && (p.flags&(GORE|128u))!=0u && (p.flags&64u)==0u && (p.flags&BOUNCED)==0u) {
                     Particle stain=p;stain.velocity=vec3(0);stain.flags=GORE|STUCK;
                     stain.freeTimer=pc.time;stain.freeLifetime=pc.goreLife;
                     uint dest=atomicAdd(words[13],1u)%pc.goreCap;stains[dest]=stain;
                 }
-                retire(p,slot);return;
+                p.flags|=BOUNCED;
+                if(dot(p.velocity,p.velocity)<400.0) { retire(p,slot);return; }
             }
         }
         if(p.freeTimer<=0.0) retire(p,slot);else { particles[slot]=p;appendActive(slot); }

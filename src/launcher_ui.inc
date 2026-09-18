@@ -733,6 +733,13 @@ void buildPages() {
      L"Scales transient effect particles: 1x is 2,048 particles per explosion; "
      L"4x is 8,192. Separate from world density and the Holo active budget.",
      131, {L"1x", L"2x", L"3x", L"4x"}, 1);
+  toggle(4, L"Gibs as particles", L"as_gib_particles", true,
+         L"A killed enemy comes apart into physics particles that explode "
+         L"outward, hit walls and bounce on the floor, instead of throwing "
+         L"large gib meshes. The gib bodies still simulate, so blood trails and "
+         L"decals are unchanged; only the chunky mesh is dropped. The outward "
+         L"burst needs Holo Physics, and how much the particles bounce is set "
+         L"by Particle restitution.");
   toggle(4, L"Nail ricochets", L"as_nails", true,
          L"Visual sparks, debris and pressure ripples at nail impacts. Does "
          L"not change the real nail trajectory or damage.");

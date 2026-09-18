@@ -9,6 +9,7 @@
 #define AS_MARKS	  768
 #define AS_MARK_VERTS 48
 cvar_t		  as_gibs = {"as_gibs", "1", CVAR_ARCHIVE};
+cvar_t		  as_gib_particles = {"as_gib_particles", "1", CVAR_ARCHIVE};
 cvar_t		  as_goo = {"as_goo", "1", CVAR_ARCHIVE};
 extern cvar_t as_effects, as_particle_amount;
 typedef struct
@@ -76,6 +77,7 @@ qboolean AS_GoreReplacedDeath (entity_t *entity)
 void AS_GoreInit (void)
 {
 	Cvar_RegisterVariable (&as_gibs);
+	Cvar_RegisterVariable (&as_gib_particles);
 	Cvar_RegisterVariable (&as_goo);
 	Cmd_AddCommand ("as_gore_stats", AS_GoreStats_f);
 }
@@ -551,6 +553,8 @@ void AS_GoreUpdate (void)
 		qmodel_t *model = g->native_model ? g->native_model : models[i % 3];
 		if (!g->active || g->drop || !model)
 			continue;
+		if (as_gib_particles.value)
+			continue; /* leave model_drawn clear: the body draws as a small blob instead */
 		entity_t *e = CL_NewTempEntity ();
 		if (!e)
 			break;
