@@ -69,6 +69,34 @@ typedef struct
 	uint32_t joints_offsets[2];
 } md5ubo_t;
 
+/* as_npc_solid: a living monster draws as its ordinary textured model and only
+   becomes a point cloud once it starts dying, so death reads as the body
+   bursting apart rather than a cloud that was always a cloud. The frame-name
+   test is the same one HP_ObserveAlias uses, so the solid body and the death
+   burst agree on the exact frame a monster stops being alive. Read-only: it
+   inspects the animation frame the renderer was already handed, never entity
+   health, QuakeC or any other gameplay state. */
+static const char *as_monster_models[] = {"soldier", "ogre",	 "demon",	"dog",	"knight", "hknight", "wizard",
+									  "shalrath", "shambler", "zombie", "fish", "boss",	  "oldone",	 "enforcer"};
+static qboolean AS_IsMonsterModel (const char *name)
+{
+	for (int j = 0; j < countof (as_monster_models); ++j)
+		if (strstr (name, as_monster_models[j]))
+			return true;
+	return false;
+}
+static qboolean AS_LivingMonster (const entity_t *e, const aliashdr_t *hdr)
+{
+	if (!e->model || !AS_IsMonsterModel (e->model->name))
+		return false;
+	if (strstr (e->model->name, "gib") || strstr (e->model->name, "/h_"))
+		return false; /* severed heads and gibs are already debris */
+	if (e->frame < 0 || e->frame >= hdr->numframes)
+		return false;
+	const char *n = hdr->frames[e->frame].name;
+	return strncmp (n, "death", 5) != 0 && strncmp (n, "die", 3) != 0;
+}
+
 /*
 =============
 GLARB_GetXYZOffset
@@ -136,6 +164,9 @@ static void GL_DrawAliasFrame (
 			vulkan_globals.alias_mboit_moment_pipelines[pipeline_index], vulkan_globals.alias_mboit_composite_pipelines[pipeline_index]);
 
     qboolean splats=as_renderer.value && paliashdr->aftershock_samples && !has_alpha && !showtris && !oit_pass;
+    /* Solid while alive, point cloud from the first death frame on. */
+    qboolean npc_solid=splats && as_npc_solid.value && AS_LivingMonster(e,paliashdr);
+    if(npc_solid)splats=false;
     if(splats)pipeline=vulkan_globals.aftershock_alias[cbx->pipeline_variant][alphatest?1:0];
 	R_BindPipeline (cbx, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
@@ -168,8 +199,7 @@ static void GL_DrawAliasFrame (
             if(as_fidelity.value)ubo->flags|=256;
             if(e==&cl.viewent)ubo->flags|=64;
             if(as_neon_npc_texture.value)ubo->flags|=0x200; // monsters tint from their own MDL skin
-            const char *monsters[]={"soldier","ogre","demon","dog","knight","hknight","wizard","shalrath","shambler","zombie","fish","boss","oldone","enforcer"};
-            for(int j=0;j<countof(monsters);++j)if(strstr(e->model->name,monsters[j])){ubo->flags|=0x20;break;}
+            if(AS_IsMonsterModel(e->model->name))ubo->flags|=0x20;
         }
 
 
@@ -181,7 +211,7 @@ static void GL_DrawAliasFrame (
 
 		ubo->entalpha = entity_alpha;
         ubo->as_pose1=(uint32_t)GLARB_GetXYZOffset(e,paliashdr,lerpdata.pose1)/4;ubo->as_pose2=(uint32_t)GLARB_GetXYZOffset(e,paliashdr,lerpdata.pose2)/4;ubo->as_st=paliashdr->vbostofs/4;ubo->as_samples=paliashdr->aftershock_offset;
-        if(splats && HP_ObserveAlias(e,paliashdr,model_matrix,blend,ubo->as_pose1,ubo->as_pose2)) break;
+        if((splats||npc_solid) && HP_ObserveAlias(e,paliashdr,model_matrix,blend,ubo->as_pose1,ubo->as_pose2)) break;
 
 		VkDescriptorSet descriptor_sets[3] = {tx->descriptor_set, (fb != NULL) ? fb->descriptor_set : tx->descriptor_set, ubo_set};
 		vulkan_globals.vk_cmd_bind_descriptor_sets (

@@ -665,6 +665,13 @@ void buildPages() {
   number(3, L"Neon glow", L"as_neon_glow", L"1", 0, 2,
          L"Scales the luminous halo. Too much glow can obscure individual "
          L"points.");
+  toggle(3, L"Solid monsters until death", L"as_npc_solid", true,
+         L"Monsters draw as their normal textured model while alive and only "
+         L"burst into the point cloud from the frame they start dying, so death "
+         L"reads as the body coming apart. Off keeps monsters as a point cloud "
+         L"the whole time. Gibbed monsters still burst. Requires the particle "
+         L"renderer; the death burst itself also needs Holo Physics, without "
+         L"which a dying monster turns to points without the outward blast.");
   toggle(3, L"Monster skin colour", L"as_neon_npc_texture", true,
          L"Tints each monster's points from its own MDL skin, so the point "
          L"cloud maps the texture instead of drawing one flat magenta "

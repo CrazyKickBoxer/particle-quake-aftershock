@@ -42,6 +42,7 @@ no `SV_TraceLine`, no RNG, no QuakeC).
 | `as_reflection_roughness` | `0.20` | 0.03–0.7 | Reflection blur/roughness; lower = sharper. |
 | `as_neon_glow` | `1` | 0–2 | Luminous halo/glow intensity. |
 | `as_neon_npc_texture` | `1` | boolean | Tints each monster's points from its own MDL skin instead of one flat magenta silhouette, so the point cloud maps the texture. Requires Neon Cathedral; weapons and pickups stay cyan. |
+| `as_npc_solid` | `1` | boolean | Monsters draw as their normal textured model while alive and only become a point cloud from the first death-animation frame, so death reads as the body bursting apart. Detected read-only from the animation frame name, the same test the death dissolve uses. 0 keeps monsters as a point cloud at all times. The outward burst itself comes from `r_holo_phys_death`, so without Holo Physics a dying monster turns to points without the blast. |
 | `as_npc_sat` | `1.6` | 0–4 | Saturation push for skin-tinted monster splats. 1 = the skin's own saturation, 0 = greyscale. Needs `as_neon_npc_texture 1`. |
 | `as_npc_lift` | `0.85` | 0.2–1 | Value curve for skin-tinted splats. 1 = linear (maximum contrast); lower lifts dark skins out of mud but flattens light/dark detail. |
 | `as_npc_gain` | `0.85` | 0–4 | Overall exposure for skin-tinted splats, applied *instead of* the fidelity ×3, so it means the same thing with `as_fidelity` on or off. Above ~1.3 bright texels start clipping to white and detail flattens. |
